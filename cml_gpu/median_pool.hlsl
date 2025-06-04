@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -61,9 +61,6 @@ uint get_attribs(in ByteAddressBuffer p_attrib_buffer, in uint p_byte_offset, ou
 #define FILTER_SIZE 9 // 3x3
 #define MEDIAN_IND 4  // 9/2
 
-//-----------------------------------------------------------------------------
-// Entry point
-//-----------------------------------------------------------------------------
 #define GROUP_SIZE 16
 [numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
 void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
@@ -154,7 +151,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
             }
             l_temp_array[l_index] = 9999999999999.9;
         }
-        
+
         l_tensors.Store(l_out_byte_offset + FLOAT_SIZE * l_idx_output, asuint(l_min));
     }
 }

@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 
@@ -6,18 +6,9 @@
 //#define MB_RAYTRACING_LINEAR_UPSAMPLING
 //#define MB_RAYTRACING_DIFFUSE_GI_ONLY
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 // CBV
 ConstantBuffer<cb_push_raytracing_upsampling_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
-// Utility
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 float3 nearest_depth_upsample(in float2 p_uv, in uint2 p_dst_pixel_coords)
 {
     Texture2D<float4> l_accumulation_buffer = ResourceDescriptorHeap[g_push_constants.m_raytracing_accumulation_rt_srv];
@@ -68,10 +59,6 @@ float3 nearest_depth_upsample(in float2 p_uv, in uint2 p_dst_pixel_coords)
     return l_result.xyz;
 }
 
-//-----------------------------------------------------------------------------
-// CS
-//-----------------------------------------------------------------------------
-
 [numthreads(RAYTRACING_UPSAMPLING_THREAD_GROUP_SIZE, RAYTRACING_UPSAMPLING_THREAD_GROUP_SIZE, 1)]
 void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
 {
@@ -92,14 +79,10 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
 
     // Ray-tracing can be computed in fractional coordinates(1, 1/2, 1/4, ...)
     uint2 l_full_res_coords = p_dispatch_thread_id.xy;
-    uint2 l_low_res_coords = p_dispatch_thread_id.xy / g_push_constants.m_raytracing_resolution_scale;
-
     uint2 l_full_res_dim = uint2(g_push_constants.m_dst_resolution_x, g_push_constants.m_dst_resolution_y);
-    uint2 l_low_res_dim = l_full_res_dim / g_push_constants.m_raytracing_resolution_scale;
 
     // Make sure UVs are in pixel centers
-    float2 l_full_res_uv = (l_full_res_coords + 0.5f) / l_full_res_dim / g_push_constants.m_raytracing_resolution_scale;
-    float2 l_full_res_uv_ssao = (l_full_res_coords + 0.5f) / l_full_res_dim;
+    float2 l_full_res_uv = (l_full_res_coords + 0.5f) / l_full_res_dim;
 
 #if defined(MB_RAYTRACING_LINEAR_UPSAMPLING)
     float3 l_accumulated_radiance = l_accumulation_buffer.SampleLevel((SamplerState) SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP], l_full_res_uv, 0).xyz;
@@ -111,7 +94,7 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
     float l_ssao = 1.0f;
     if (g_push_constants.m_ssao_rt_srv != RAL_NULL_BINDLESS_INDEX)
     {
-        l_ssao = bindless_tex2d_sample_level(g_push_constants.m_ssao_rt_srv, (SamplerState) SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], l_full_res_uv_ssao).r;
+        l_ssao = bindless_tex2d_sample_level(g_push_constants.m_ssao_rt_srv, (SamplerState) SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], l_full_res_uv).r;
     }
 
 #if defined(MB_RAYTRACING_DIFFUSE_GI)

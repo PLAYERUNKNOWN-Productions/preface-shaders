@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 
@@ -50,18 +50,9 @@
 // Temporary define to match with reference  path tracing
 //#define DEBUG_PROCESSING 1
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 // CBV
 ConstantBuffer<cb_push_raytracing_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
-// Structures
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 struct raytracing_mesh_vertex_t
 {
     float3 m_position;
@@ -71,7 +62,6 @@ struct raytracing_mesh_vertex_t
     float2 m_uv0;
 };
 
-//-----------------------------------------------------------------------------
 struct pbr_material_t
 {
     float3  m_base_color;
@@ -88,7 +78,6 @@ struct pbr_material_t
     float   m_alpha_cutoff;
 };
 
-//-----------------------------------------------------------------------------
 struct downsampled_data_t
 {
     // Downsampled depth
@@ -101,11 +90,6 @@ struct downsampled_data_t
     uint2 m_offset_in_pixels;
 };
 
-//-----------------------------------------------------------------------------
-// Utility functions
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 rand_type_t hash_wang(inout rand_type_t p_seed)
 {
     p_seed = uint(p_seed ^ uint(61)) ^ uint(p_seed >> uint(16));
@@ -116,7 +100,6 @@ rand_type_t hash_wang(inout rand_type_t p_seed)
     return p_seed;
 }
 
-//-----------------------------------------------------------------------------
 // 32-bit Xorshift random number generator
 uint xorshift(inout uint p_rand_state)
 {
@@ -126,7 +109,6 @@ uint xorshift(inout uint p_rand_state)
     return p_rand_state;
 }
 
-//-----------------------------------------------------------------------------
 // Jenkins's "one at a time" hash function
 uint jenkins_hash(uint p_val)
 {
@@ -138,7 +120,6 @@ uint jenkins_hash(uint p_val)
     return p_val;
 }
 
-//-----------------------------------------------------------------------------
 // Converts unsigned integer into float int range <0; 1) by using 23 most significant bits for mantissa
 float uint_to_float(uint x)
 {
@@ -146,7 +127,6 @@ float uint_to_float(uint x)
 }
 
 #if defined(USE_RAND_XORSHIFT)
-//-----------------------------------------------------------------------------
 rand_type_t init_rand(uint2 p_pixel_coords, uint2 p_resolution, uint p_frame_number)
 {
     rand_type_t l_seed = dot(p_pixel_coords, uint2(1, p_resolution.x)) ^ jenkins_hash(p_frame_number);
@@ -158,7 +138,6 @@ float random_float01(inout rand_type_t p_state)
     return uint_to_float(xorshift(p_state));
 }
 #else
-//-----------------------------------------------------------------------------
 rand_type_t init_rand(uint2 p_pixel_coords, uint2 p_resolution, uint p_frame_number)
 {
     rand_type_t l_seed = uint(uint(p_pixel_coords.x) * uint(1973) + uint(p_pixel_coords.y) * uint(9277) + uint(p_frame_number) * uint(26699)) | uint(1);
@@ -171,7 +150,6 @@ float random_float01(inout rand_type_t p_state)
 }
 #endif
 
-//-----------------------------------------------------------------------------
 float2 sample_concentric_disk(float2 p_u)
 {
     float2 l_u_offfset = 2.0f * p_u - float2(1.0f, 1.0f);
@@ -194,7 +172,6 @@ float2 sample_concentric_disk(float2 p_u)
     return l_r * float2(cos(l_theta), sin(l_theta));
 }
 
-//-----------------------------------------------------------------------------
 float3 sample_hemisphere_uniform(float p_u, float p_v)
 {
     float l_z = p_u;
@@ -203,7 +180,6 @@ float3 sample_hemisphere_uniform(float p_u, float p_v)
     return float3(l_r * cos(l_phi), l_r * sin(l_phi), l_z);
 }
 
-//-----------------------------------------------------------------------------
 float3 sample_hemisphere_cosine(float p_u, float p_v)
 {
     float2 l_d = sample_concentric_disk(float2(p_u, p_v));
@@ -211,7 +187,6 @@ float3 sample_hemisphere_cosine(float p_u, float p_v)
     return float3(l_d.x, l_d.y, l_z);
 }
 
-//-----------------------------------------------------------------------------
 // Samples a microfacet normal for the GGX distribution using VNDF method.
 // Source: "Sampling the GGX Distribution of Visible Normals" by Heitz
 // See also https://hal.inria.fr/hal-00996995v1/document and http://jcgt.org/published/0007/04/01/
@@ -242,7 +217,6 @@ float3 sample_ggx_visible_normal(float3 p_view, float p_alpha_x, float p_alpha_y
     return normalize(float3(p_alpha_x * l_normal.x, p_alpha_y * l_normal.y, max(0.0f, l_normal.z)));
 }
 
-//-----------------------------------------------------------------------------
 // Offsets the ray origin from current position p_position, along normal p_geo_normal (which must be geometric normal) so that no self-intersection can occur.
 float3 offset_ray(const float3 p_position, const float3 p_geo_normal)
 {
@@ -261,7 +235,6 @@ float3 offset_ray(const float3 p_position, const float3 p_geo_normal)
                     abs(p_position.z) < l_origin ? p_position.z + l_float_scale * p_geo_normal.z : p_i.z);
 }
 
-//-----------------------------------------------------------------------------
 raytracing_mesh_vertex_t get_vertex_mesh(sb_raytracing_hierarchy_t p_hierarchy,
                                          uint p_geo_index,
                                          uint p_triangle_index,
@@ -334,7 +307,6 @@ raytracing_mesh_vertex_t get_vertex_mesh(sb_raytracing_hierarchy_t p_hierarchy,
     return l_mesh_vertex;
 }
 
-//-----------------------------------------------------------------------------
 raytracing_mesh_vertex_t get_vertex_mesh_tile(sb_render_item_t p_render_item,
                                               uint p_triangle_index,
                                               sb_quadtree_material_t p_quadtree_material,
@@ -390,7 +362,6 @@ raytracing_mesh_vertex_t get_vertex_mesh_tile(sb_render_item_t p_render_item,
     return l_mesh_vertex;
 }
 
-//-----------------------------------------------------------------------------
 // TODO: copy-pasted
 float3 ggx_specular_lighting(float3 p_normal, float3 p_view_dir, float3 p_light_dir, float3 p_specular_f0, float p_roughness)
 {
@@ -419,7 +390,6 @@ float3 ggx_specular_lighting(float3 p_normal, float3 p_view_dir, float3 p_light_
     return l_specular_lighting * l_ndl;
 }
 
-//-----------------------------------------------------------------------------
 float smith_g1(float3 p_normal, float3 p_light, float3 p_view, float p_alpha2)
 {
     float l_ndl = max(0.001f, min(1.0f, dot(p_normal, p_light)));
@@ -429,7 +399,6 @@ float smith_g1(float3 p_normal, float3 p_light, float3 p_view, float p_alpha2)
     return 2.0f * l_ndv / l_denom_c;
 }
 
-//-----------------------------------------------------------------------------
 float smith_g2(float3 p_normal, float3 p_light, float3 p_view, float p_alpha2)
 {
     float l_ndl = max(0.001f, min(1.0f, dot(p_normal, p_light)));
@@ -441,7 +410,6 @@ float smith_g2(float3 p_normal, float3 p_light, float3 p_view, float p_alpha2)
     return 2.0f * l_ndl * l_ndv / (l_denom_a + l_denom_b);
 }
 
-//-----------------------------------------------------------------------------
 float get_specular_brdf_probability(float3 p_diffuse_reflectance,
                                     float3 p_specular_f0,
                                     float3 p_view_dir,
@@ -466,7 +434,6 @@ float get_specular_brdf_probability(float3 p_diffuse_reflectance,
     return clamp(l_probability, 0.1f, 0.9f);
 }
 
-//-----------------------------------------------------------------------------
 raytracing_mesh_vertex_t get_vertex_mesh(sb_raytracing_hierarchy_t p_hierarchy,
                                          uint p_geo_index,
                                          uint p_triangle_index,
@@ -530,7 +497,6 @@ raytracing_mesh_vertex_t get_vertex_mesh(sb_raytracing_hierarchy_t p_hierarchy,
     return l_mesh_vertex;
 }
 
-//-----------------------------------------------------------------------------
 raytracing_mesh_vertex_t get_vertex_mesh_tile(sb_render_item_t p_render_item,
                                               uint p_triangle_index,
                                               float3 p_barycentrics,
@@ -554,7 +520,6 @@ raytracing_mesh_vertex_t get_vertex_mesh_tile(sb_render_item_t p_render_item,
     float2 l_uv_2 = l_mesh_vertex_1.m_uv0;
     float2 l_uv_3 = l_mesh_vertex_2.m_uv0;
 
-    //-----------------------------------------------------
     // Solve linear system
     // Source: https://www.cs.upc.edu/~virtual/G/1.%20Teoria/06.%20Textures/Tangent%20Space%20Calculation.pdf
 
@@ -640,7 +605,6 @@ raytracing_mesh_vertex_t get_vertex_mesh_tile(sb_render_item_t p_render_item,
     return l_mesh_vertex;
 }
 
-//-----------------------------------------------------------------------------
 uint is_material_vt(sb_geometry_pbr_material_t p_material)
 {
     if (p_material.m_base_color_sampler_feedback_uav != RAL_NULL_BINDLESS_INDEX ||
@@ -655,7 +619,6 @@ uint is_material_vt(sb_geometry_pbr_material_t p_material)
     }
 }
 
-//-----------------------------------------------------------------------------
 pbr_material_t get_material(uint p_hierarchy_srv,
                             uint p_geo_index,
                             raytracing_mesh_vertex_t p_mesh_vertex,
@@ -716,7 +679,7 @@ pbr_material_t get_material(uint p_hierarchy_srv,
     uint2 l_screen_xy = 0;
 
     // Albedo
-    float4 l_base_color_texture = 0;
+    float3 l_base_color_texture = 0;
     if (l_pbr_material.m_base_color_residency_buffer_srv != RAL_NULL_BINDLESS_INDEX)
     {
         l_base_color_texture = raytracing_bindless_tex2d_sample_level_with_feedback(NonUniformResourceIndex(l_pbr_material.m_base_color_texture_srv),
@@ -725,7 +688,7 @@ pbr_material_t get_material(uint p_hierarchy_srv,
                                                                                     (SamplerState) SamplerDescriptorHeap[SAMPLER_LINEAR_WRAP],
                                                                                     p_mesh_vertex.m_uv0,
                                                                                     MIP_LEVEL,
-                                                                                    1.0);
+                                                                                    1.0).rgb;
     }
     else
     {
@@ -733,10 +696,10 @@ pbr_material_t get_material(uint p_hierarchy_srv,
                                                             (SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_WRAP],
                                                             p_mesh_vertex.m_uv0,
                                                             MIP_LEVEL,
-                                                            1.0f);
+                                                            1.0f).rgb;
     }
 
-    l_material.m_base_color = l_base_color_texture.rgb;
+    l_material.m_base_color = l_base_color_texture;
     l_material.m_base_color = gamma_to_linear(l_pbr_material.m_base_color_factor.xyz * l_material.m_base_color);
 
     // Metallic-roughness
@@ -783,6 +746,16 @@ pbr_material_t get_material(uint p_hierarchy_srv,
                                                         float4(0.5f, 0.5f, 1.0f, 0)).xy;
     }
 
+    float l_opacity = 0;
+    if(l_pbr_material.m_alpha_mask_texture_srv != RAL_NULL_BINDLESS_INDEX)
+    {
+        l_opacity = bindless_tex2d_sample_level(NonUniformResourceIndex(l_pbr_material.m_alpha_mask_texture_srv),
+                                                (SamplerState) SamplerDescriptorHeap[SAMPLER_LINEAR_WRAP],
+                                                p_mesh_vertex.m_uv0,
+                                                MIP_LEVEL,
+                                                0.0).r;
+    }
+
     l_normal_texture = l_normal_texture * 2.0f - 1.0f;
     l_material.m_normal_ts.xy = l_normal_texture.xy;
     l_material.m_normal_ts.z = sqrt(1.0f - saturate(dot(l_normal_texture.xy, l_normal_texture.xy)));
@@ -790,8 +763,7 @@ pbr_material_t get_material(uint p_hierarchy_srv,
     // Index of refraction(IOR)
     l_material.m_ior = 1.0f;
 
-
-    l_material.m_opacity        = l_pbr_material.m_base_color_factor.w * l_base_color_texture.w;
+    l_material.m_opacity = l_opacity;
     l_material.m_alpha_cutoff   = l_pbr_material.m_alpha_cutoff;
 
     // PBR deriviations
@@ -824,7 +796,6 @@ pbr_material_t get_material(uint p_hierarchy_srv,
     return l_material;
 }
 
-//-----------------------------------------------------------------------------
 float3 apply_scattering(float3 p_ray_start,
                         float3 p_ray_dir,
                         float p_ray_length,
@@ -855,7 +826,6 @@ float3 apply_scattering(float3 p_ray_start,
     return l_radiance;
 }
 
-//-----------------------------------------------------------------------------
 void get_inscattering_and_extinction(   float3 p_ray_start,
                                         float3 p_ray_dir,
                                         float p_ray_length,
@@ -880,15 +850,10 @@ void get_inscattering_and_extinction(   float3 p_ray_start,
     p_inscattering += (p_sund_disk_enabled == SKY_DISK_ENABLED) * l_sun_disk * l_atmospheric_scattering_settings.m_sun_light_color * p_extinction;
 }
 
-//-----------------------------------------------------------------------------
 void shade_point(   inout pl_ray_payload_t p_payload,
                     raytracing_mesh_vertex_t p_mesh_vertex,
                     pbr_material_t p_material)
 {
-    //-------------------------------------------------------------------------
-    // TBN
-    //-------------------------------------------------------------------------
-
     float3x3 l_tbn = float3x3(normalize(p_mesh_vertex.m_tangent), normalize(p_mesh_vertex.m_binormal), normalize(p_mesh_vertex.m_normal));
 
 #if 1
@@ -907,10 +872,7 @@ void shade_point(   inout pl_ray_payload_t p_payload,
     float3 l_normal_ws = normalize(p_mesh_vertex.m_normal);
 #endif
 
-    //-------------------------------------------------------------------------
     // Ray params
-    //-------------------------------------------------------------------------
-
     float l_hit_t = RayTCurrent();
     float3 l_incoming_ray_dir_ws = WorldRayDirection();
     float3 l_ray_origin_ws = WorldRayOrigin();
@@ -919,15 +881,8 @@ void shade_point(   inout pl_ray_payload_t p_payload,
     float3 l_pos_w = l_ray_origin_ws + l_hit_t * l_incoming_ray_dir_ws;
 
 
-    //-------------------------------------------------------------------------
     // Emission
-    //-------------------------------------------------------------------------
-
     p_payload.m_radiance = g_push_constants.m_emissive_lighting > 0 ? p_payload.m_throughput * p_material.m_emissive : 0;
-
-    //-------------------------------------------------------------------------
-    // Direct lighting
-    //-------------------------------------------------------------------------
 
     // TODO: test section
     float3 l_view_dir = -l_incoming_ray_dir_ws;
@@ -1033,10 +988,7 @@ void shade_point(   inout pl_ray_payload_t p_payload,
 
     p_payload.m_radiance += p_payload.m_throughput * l_direct_lighting;
 
-    //-------------------------------------------------------------------------
     // Russian roulette
-    //-------------------------------------------------------------------------
-
     if (p_payload.m_path_length >= RUSSIAN_ROULETTE_MIN_BOUNCE)
     {
         float l_russian_roulette_prob = min(0.95f, get_luminance(p_payload.m_throughput));
@@ -1050,18 +1002,12 @@ void shade_point(   inout pl_ray_payload_t p_payload,
         }
     }
 
-    //-------------------------------------------------------------------------
     // Next bounce
-    //-------------------------------------------------------------------------
-
     if (p_payload.m_path_length < g_push_constants.m_num_bounces)
     {
         RaytracingAccelerationStructure l_acc_struct = ResourceDescriptorHeap[g_push_constants.m_raytracing_acc_struct_srv];
 
-        //---------------------------------------------------------------------
         // Choose between specular and diffuse ray
-        //---------------------------------------------------------------------
-
         float l_specular_probability = get_specular_brdf_probability(p_material.m_diffuse_reflectance,
                                                                      p_material.m_specular_f0,
                                                                      l_view_dir,
@@ -1087,10 +1033,7 @@ void shade_point(   inout pl_ray_payload_t p_payload,
         }
 #endif
 
-        //---------------------------------------------------------------------
         // Diffuse rays
-        //---------------------------------------------------------------------
-
         float3 l_radiance = 0;
 
         if (g_push_constants.m_indirect_diffuse &&
@@ -1161,10 +1104,7 @@ void shade_point(   inout pl_ray_payload_t p_payload,
             }
         }
 
-        //---------------------------------------------------------------------
         // Specular rays
-        //---------------------------------------------------------------------
-
         if (g_push_constants.m_indirect_specular &&
             l_use_specular_ray)
         {
@@ -1249,9 +1189,7 @@ void shade_point(   inout pl_ray_payload_t p_payload,
 
         p_payload.m_radiance += l_radiance / g_push_constants.m_num_samples;
 
-        //-------------------------------------------------------------------------
         // Scattering
-        //-------------------------------------------------------------------------
 #if defined(ATMOSPHERIC_SCATTERING_ON_HIT)
         if (p_payload.m_path_length == 1)
         {
@@ -1274,7 +1212,6 @@ void shade_point(   inout pl_ray_payload_t p_payload,
     }
 }
 
-//-----------------------------------------------------------------------------
 float3 min_diff(float3 p_position, float3 p_position_right, float3 p_position_left)
 {
     float3 l_v1 = p_position_right - p_position;
@@ -1282,17 +1219,13 @@ float3 min_diff(float3 p_position, float3 p_position_right, float3 p_position_le
     return (dot(l_v1, l_v1) < dot(l_v2, l_v2)) ? l_v1 : l_v2;
 }
 
-//-----------------------------------------------------------------------------
 float3 reconstruct_normal(cb_camera_t l_camera, float2 l_uv)
 {
-    // Get remapped uv
-    float2 l_remapped_uv = get_remapped_uv(l_uv, l_camera.m_render_scale);
-
-    float2 l_uv0 = l_remapped_uv;
-    float2 l_uv1 = l_remapped_uv + float2( g_push_constants.m_inv_dst_resolution.x, 0); // right
-    float2 l_uv2 = l_remapped_uv + float2(0,  g_push_constants.m_inv_dst_resolution.y); // top
-    float2 l_uv3 = l_remapped_uv + float2(-g_push_constants.m_inv_dst_resolution.x, 0); // left
-    float2 l_uv4 = l_remapped_uv + float2(0, -g_push_constants.m_inv_dst_resolution.y); // bottom
+    float2 l_uv0 = l_uv;
+    float2 l_uv1 = l_uv + float2( g_push_constants.m_inv_dst_resolution.x, 0); // right
+    float2 l_uv2 = l_uv + float2(0,  g_push_constants.m_inv_dst_resolution.y); // top
+    float2 l_uv3 = l_uv + float2(-g_push_constants.m_inv_dst_resolution.x, 0); // left
+    float2 l_uv4 = l_uv + float2(0, -g_push_constants.m_inv_dst_resolution.y); // bottom
 
     // Get depth
     float l_depth0 = bindless_tex2d_sample_level(g_push_constants.m_depth_texture_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], l_uv0).r;
@@ -1318,7 +1251,6 @@ float3 reconstruct_normal(cb_camera_t l_camera, float2 l_uv)
     return l_normal;
 }
 
-//-----------------------------------------------------------------------------
 downsampled_data_t get_max_depth(uint2 p_launch_index)
 {
     Texture2D<float> l_depth_buffer = ResourceDescriptorHeap[g_push_constants.m_depth_texture_srv];
@@ -1356,7 +1288,6 @@ downsampled_data_t get_max_depth(uint2 p_launch_index)
     return l_downsampled_data;
 }
 
-//-----------------------------------------------------------------------------
 downsampled_data_t get_min_depth(uint2 p_launch_index)
 {
     Texture2D<float> l_depth_buffer = ResourceDescriptorHeap[g_push_constants.m_depth_texture_srv];
@@ -1394,10 +1325,7 @@ downsampled_data_t get_min_depth(uint2 p_launch_index)
     return l_downsampled_data;
 }
 
-//-----------------------------------------------------------------------------
 // Ray generation
-//-----------------------------------------------------------------------------
-
 [shader("raygeneration")]
 void raygen_shader()
 {
@@ -1480,7 +1408,6 @@ void raygen_shader()
     l_accumulation_buffer_write[l_launch_index.xy] = float4(l_accumulated_radiance, 1.0f);
 }
 
-//-----------------------------------------------------------------------------
 [shader("raygeneration")]
 void raygen_shader_diffuse_gi()
 {
@@ -1558,7 +1485,7 @@ void raygen_shader_diffuse_gi()
 
         //float3 l_ray_dir = reflect(l_ray_end_tmp.xyz, l_normal_world_space);
         float3 l_ray_dir = l_ray_dir_ws;
-        
+
         // Ray dsc
         RayDesc l_ray;
         l_ray.Origin      = l_ray_start;
@@ -1583,28 +1510,14 @@ void raygen_shader_diffuse_gi()
 
     }
 
-    //--------------------------------------------------------------------------
-    // Get pixel's velocity
+    // Convert motion vectors to UV-space
+    float2 l_screen_to_uv_space = 1.0f / float2(l_camera.m_resolution_x, l_camera.m_resolution_y);
+    float2 l_velocity = l_downsampled_data.m_velocity * l_screen_to_uv_space;
 
-    // Get world space local position
-    float4 l_proj_pos = mul(float4(l_pos_ws_local, 1.0f), l_camera.m_view_proj_local_prev);
-    float2 l_uv_prev_full_res = (l_proj_pos.xy / l_proj_pos.w) * float2(0.5f, -0.5f) + float2(0.5f, 0.5f);
-
-    // Convert to UV-space
-    float2 l_object_velocity = l_downsampled_data.m_velocity * float2(0.5f, -0.5f);
-
-    // Compute camera velocity
-    float2 l_camera_velocity = (l_uv_full_res - l_uv_prev_full_res);
-
-    // Add camera and object velocities
-    float2 l_velocity = l_object_velocity + l_camera_velocity;
-
-    //--------------------------------------------------------------------------
     // TAA
-
-    float2 l_prev_coords_float = l_launch_index.xy - l_velocity * l_launch_dim.xy + 0.5f;
+    float2 l_prev_coords_float = l_launch_index.xy + l_velocity * l_launch_dim.xy + 0.5f;
     int2 l_prev_coords_int = l_prev_coords_float;
-    float2 l_prev_frame_uv = (float2)(l_prev_coords_float) / l_launch_dim.xy / (float)g_push_constants.m_raytracing_resolution_scale;
+    float2 l_prev_frame_uv = (float2)(l_prev_coords_float) / l_launch_dim.xy;
 
     float4 l_previous_radiance_depth    = l_accumulation_buffer_read.SampleLevel((SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP], l_prev_frame_uv, 0);
     float3 l_previous_radiance          = l_previous_radiance_depth.xyz;
@@ -1651,10 +1564,7 @@ void raygen_shader_diffuse_gi()
     l_normals_texture[l_launch_index.xy] = l_normal_world_space;
 }
 
-//-----------------------------------------------------------------------------
 // Primary rays
-//-----------------------------------------------------------------------------
-
 [shader("miss")]
 void miss_shader(inout pl_ray_payload_t p_payload)
 {
@@ -1760,15 +1670,9 @@ void closest_hit_shader(inout pl_ray_payload_t p_payload, in BuiltInTriangleInte
     shade_point(p_payload, l_mesh_vertex, l_material);
 }
 
-//-----------------------------------------------------------------------------
 // Virtual Texture feedback loop
-//-----------------------------------------------------------------------------
 
-
-//-----------------------------------------------------------------------------
 // Shadow rays
-//-----------------------------------------------------------------------------
-
 [shader("miss")]
 void shadow_miss_shader(inout pl_shadow_ray_payload_t p_payload)
 {
@@ -1815,10 +1719,7 @@ void shadow_closest_hit_shader(inout pl_shadow_ray_payload_t p_payload, in Built
     p_payload.m_hit = true;
 }
 
-//-----------------------------------------------------------------------------
 // Tile rays
-//-----------------------------------------------------------------------------
-
 [shader("closesthit")]
 void tile_closest_shader_hit(inout pl_ray_payload_t p_payload, in BuiltInTriangleIntersectionAttributes p_attribs)
 {

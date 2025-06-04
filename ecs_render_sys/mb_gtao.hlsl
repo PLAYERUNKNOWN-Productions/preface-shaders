@@ -1,10 +1,6 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
-
-//-----------------------------------------------------------------------------
-// Defines
-//-----------------------------------------------------------------------------
 
 #define FADE_DELTA 1e-4
 #define INTERLEAVE_POSITION_VS_MASK 3
@@ -24,30 +20,18 @@
     #define NUM_STEPS 4
 #endif
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 // Root constants
 ConstantBuffer<cb_push_gtao_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
-//-----------------------------------------------------------------------------
-// Helper functions
-//-----------------------------------------------------------------------------
 
-//-----------------------------------------------------------------------------
-float3 get_view_position(float2 p_uv, float p_z_near, float p_z_far, float2 p_tan_half_fov_xy, float2 p_render_scale)
+float3 get_view_position(float2 p_uv, float p_z_near, float p_z_far, float2 p_tan_half_fov_xy)
 {
-    // Get remapped uv
-    float2 l_remapped_uv = get_remapped_uv(p_uv, p_render_scale);
-
-    float l_depth = bindless_tex2d_sample_level(g_push_constants.m_depth_texture_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], l_remapped_uv).r;
+    float l_depth = bindless_tex2d_sample_level(g_push_constants.m_depth_texture_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], p_uv).r;
     float l_z_vs = get_view_depth_from_depth(l_depth, p_z_near, p_z_far);
     float3 l_position_vs = get_view_position(p_uv, l_z_vs, p_tan_half_fov_xy);
 
     return l_position_vs;
 }
 
-//-----------------------------------------------------------------------------
 float3 get_view_normal(float2 p_uv)
 {
     float3 l_normal_vs = bindless_tex2d_sample_level(g_push_constants.m_normal_texture_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], p_uv).xyz;
@@ -55,27 +39,23 @@ float3 get_view_normal(float2 p_uv)
     return l_normal_vs;
 }
 
-//-----------------------------------------------------------------------------
 float compute_distance_fade(float p_distance, float p_fade_start, float p_fade_speed)
 {
     return saturate(max(0, p_distance - p_fade_start) * p_fade_speed);
 }
 
-//-----------------------------------------------------------------------------
 float gtao_fast_sqrt(float p_x)
 {
     // [Drobot2014a] Low Level Optimizations for GCN
     return asfloat(0x1FBD1DF5 + (asint(p_x) >> 1));
 }
 
-//-----------------------------------------------------------------------------
 float2 gtao_fast_sqrt(float2 p_x)
 {
     // [Drobot2014a] Low Level Optimizations for GCN
     return asfloat(0x1FBD1DF5 + (asint(p_x) >> 1));
 }
 
-//-----------------------------------------------------------------------------
 float gtao_fast_acos(float p_x)
 {
     // [Eberly2014] GPGPU Programming for Games and Science
@@ -84,25 +64,22 @@ float gtao_fast_acos(float p_x)
     return (p_x >= 0) ? l_res : (M_PI - l_res);
 }
 
-//-----------------------------------------------------------------------------
 float2 gtao_fast_acos(float2 p_x)
 {
     // [Eberly2014] GPGPU Programming for Games and Science
     float2 l_res = -0.156583 * abs(p_x) + M_PI / 2.0;
     l_res *= gtao_fast_sqrt(1.0 - abs(p_x));
-    return (p_x >= 0) ? l_res : (M_PI - l_res);
+    return select(p_x >= 0, l_res, M_PI - l_res);
 }
 
-//-----------------------------------------------------------------------------
 float integrate_arc_cos_weight(float2 p_h, float p_n, float p_cos_n, float p_sin_n)
 {
     float2 l_arc = -cos(2.0f * p_h - p_n) + p_cos_n + 2.0f * p_h * p_sin_n;
     return 0.25f * (l_arc.x + l_arc.y);
 }
 
-//-----------------------------------------------------------------------------
 float compute_coarse_ao(float2 p_uv_position, float2 p_pixel_percent, float3 p_position_vs, float3 p_normal_vs,
-                        float2 p_inv_resolution, float p_z_near, float p_z_far, float2 p_render_scale,
+                        float2 p_inv_resolution, float p_z_near, float p_z_far,
                         float2 p_tan_half_fov_xy, float p_sample_aspect_ratio, float p_near_radius, float p_far_radius,
                         float p_near_horizon_falloff, float p_far_horizon_falloff, float p_near_thickness,
                         float p_far_thickness, float p_fade_start, float p_fade_speed, float p_half_project_scale)
@@ -151,8 +128,8 @@ float compute_coarse_ao(float2 p_uv_position, float2 p_pixel_percent, float3 p_p
             float4 l_snapped_uv_position = p_uv_position.xyxy + float4(l_uv_offset.xy, -l_uv_offset.xy);
             float4 l_snapped_uv = l_snapped_uv_position * l_inv_quater_resolution.xyxy;
 
-            float3 l_position_vs_1 = get_view_position(l_snapped_uv.xy, p_z_near, p_z_far, p_tan_half_fov_xy, p_render_scale);
-            float3 l_position_vs_2 = get_view_position(l_snapped_uv.zw, p_z_near, p_z_far, p_tan_half_fov_xy, p_render_scale);
+            float3 l_position_vs_1 = get_view_position(l_snapped_uv.xy, p_z_near, p_z_far, p_tan_half_fov_xy);
+            float3 l_position_vs_2 = get_view_position(l_snapped_uv.zw, p_z_near, p_z_far, p_tan_half_fov_xy);
 
             float3 l_h1 = l_position_vs_1 - p_position_vs;
             float3 l_h2 = l_position_vs_2 - p_position_vs;
@@ -163,7 +140,7 @@ float compute_coarse_ao(float2 p_uv_position, float2 p_pixel_percent, float3 p_p
             float2 l_falloff = saturate(l_h1_h2 * l_falloff_div_radius2); // Close to r, -> stable
 
             float2 l_h = float2(dot(l_h1, l_direction_vs), dot(l_h2, l_direction_vs)) * l_h1_h2_length;
-            l_cos_horizon.xy = lerp(l_h, l_cos_horizon, l_h.xy > l_cos_horizon.xy ? l_falloff : l_thickness);
+            l_cos_horizon.xy = lerp(l_h, l_cos_horizon, select(l_h.xy > l_cos_horizon.xy, l_falloff, l_thickness));
             l_ray_pixels += l_step_size_pixels;
         }
 
@@ -196,10 +173,6 @@ float compute_coarse_ao(float2 p_uv_position, float2 p_pixel_percent, float3 p_p
     return 1 - l_occlusion;
 }
 
-//-----------------------------------------------------------------------------
-// CS
-//-----------------------------------------------------------------------------
-
 [numthreads(GTAO_THREAD_GROUP_SIZE, GTAO_THREAD_GROUP_SIZE, 1)]
 void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
 {
@@ -217,10 +190,7 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
     float2 l_uv_position = p_dispatch_thread_id.xy + 0.5f;
     float2 l_uv = l_uv_position / (float2)g_push_constants.m_dst_resolution;
 
-    // Get remapped uv
-    float2 l_remapped_uv = get_remapped_uv(l_uv, l_camera.m_render_scale);
-
-    float l_depth = bindless_tex2d_sample_level(g_push_constants.m_depth_texture_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], l_remapped_uv).r;
+    float l_depth = bindless_tex2d_sample_level(g_push_constants.m_depth_texture_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], l_uv).r;
 
     float l_z_vs = get_view_depth_from_depth(l_depth, l_camera.m_z_near, l_camera.m_z_far);
 
@@ -246,13 +216,13 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
     float2 l_tan_half_fov_xy = get_tangent_half_fov_from_projection_matrix(l_camera.m_proj);
     float3 l_position_vs = get_view_position(l_uv, l_z_vs, l_tan_half_fov_xy);
 
-    float3 l_normal_vs = get_view_normal(l_remapped_uv);
+    float3 l_normal_vs = get_view_normal(l_uv);
 
     const uint2 l_xy_id = p_dispatch_thread_id.xy & INTERLEAVE_POSITION_VS_MASK;
     const float2 l_pixel_percent = bindless_tex2d_load(g_push_constants.m_jitter_texture_srv, uint3(l_xy_id, 0)).xy;
 
     float l_ao = compute_coarse_ao(l_uv_position, l_pixel_percent, l_position_vs, l_normal_vs, g_push_constants.m_inv_dst_resolution,
-                                   l_camera.m_z_near, l_camera.m_z_far, l_camera.m_render_scale, l_tan_half_fov_xy, g_push_constants.m_sample_aspect_ratio,
+                                   l_camera.m_z_near, l_camera.m_z_far, l_tan_half_fov_xy, g_push_constants.m_sample_aspect_ratio,
                                    g_push_constants.m_near_radius, g_push_constants.m_far_radius, g_push_constants.m_near_horizon_falloff,
                                    g_push_constants.m_far_horizon_falloff, g_push_constants.m_near_thickness, g_push_constants.m_far_thickness,
                                    g_push_constants.m_fade_start, g_push_constants.m_fade_speed, g_push_constants.m_half_project_scale);

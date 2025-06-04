@@ -1,21 +1,8 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 
 ConstantBuffer<cb_push_debug_rendering_indirect_t>      g_push_constants            : register(REGISTER_PUSH_CONSTANTS);
-
-//-----------------------------------------------------------------------------
-// Structures
-//-----------------------------------------------------------------------------
-
-
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
-// CS
-//-----------------------------------------------------------------------------
 
 [numthreads(1, 1, 1)]
 void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
@@ -39,5 +26,3 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
     l_draw_command_buffer[1].m_draw.m_start_instance_location = 0;
 #endif
 }
-
-

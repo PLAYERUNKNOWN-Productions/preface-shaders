@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 float cosh(in float p_x)
 {

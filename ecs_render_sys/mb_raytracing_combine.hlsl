@@ -1,11 +1,7 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "../shared_shaders/mb_shared_common.hlsl"
-
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
 
 // Push constants
 ConstantBuffer<cb_push_raytracing_combine_t> g_push_constants  : register(REGISTER_PUSH_CONSTANTS);

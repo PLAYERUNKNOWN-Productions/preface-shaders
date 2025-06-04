@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -57,9 +57,6 @@ uint get_attribs(in ByteAddressBuffer p_attrib_buffer, in uint p_byte_offset, ou
 #define l_p1 (l_attribs.m_padding.x)
 #define l_p2 (l_attribs.m_padding.z)
 
-//-----------------------------------------------------------------------------
-// Entry point
-//-----------------------------------------------------------------------------
 #define GROUP_SIZE 16
 [numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
 void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
@@ -94,7 +91,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     {
         int l_dim_0 = l_d_i;
         int l_dim_1 = l_dim_0;
-        
+
         uint l_idx_output = l_i2 + l_i1 * l_d_o + l_k2 * l_d_o * l_d_o;
 
         float l_max_value = -FLT_MAX;
@@ -111,7 +108,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
                 if (l_ind2 >= 0 && l_ind3 >= 0 && l_ind2 < l_d_i && l_ind3 < l_d_i)
                 {
                     float l_t1 = asfloat(l_tensors.Load(l_in_byte_offset_input + 4 * (uint)l_idx_input));
-                    
+
                     if (l_t1 > l_max_value)
                     {
                         l_max_value = l_t1;

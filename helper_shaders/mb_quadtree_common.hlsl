@@ -1,17 +1,16 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #ifndef MBSHADER_QUADTREE_COMMON_H
 #define MBSHADER_QUADTREE_COMMON_H
 
 #include "mb_common.hlsl"
-#include "../shared_shaders/mb_shader_buffers.hlsl"
+#include "../shared_shaders/mb_shared_buffers.hlsl"
 #include "../helper_shaders/mb_util_noise.hlsl"
 
 #define TEXTURE_ARRAY_MIP_LEVEL 0
 
 #define MB_QUADTREE_METALLIC_DEFAULT .1f
 
-//-----------------------------------------------------------------------------
 float4 get_color_on_rainbow(float p_v)
 {
     p_v = saturate(p_v);
@@ -45,7 +44,7 @@ float4 get_color_on_rainbow(float p_v)
     {
         l_rgb = float3(l_x, 0.f, l_chroma);
     }
-    else 
+    else
     {
         l_rgb = float3(l_chroma, 0.f, l_x);
     }
@@ -53,7 +52,6 @@ float4 get_color_on_rainbow(float p_v)
     return float4(l_rgb + l_m, 0);
 }
 
-//-----------------------------------------------------------------------------
 struct terrain_sample_t
 {
     float3 m_position_ws_local;
@@ -61,7 +59,6 @@ struct terrain_sample_t
     float3 m_surface_normal_ws;
 };
 
-//-----------------------------------------------------------------------------
 struct terrain_material_t
 {
     float3 m_normal_ts;
@@ -74,14 +71,12 @@ struct terrain_material_t
 
 };
 
-//-----------------------------------------------------------------------------
 // Convert from tile position to tile UV
 float2 tile_position_to_tile_uv(float2 p_tile_position)
 {
     return float2(p_tile_position.x, 1.0f - p_tile_position.y);
 }
 
-//-----------------------------------------------------------------------------
 // Tile UV is in [0..1]
 // Pixels centers should match with vertices
 // Height has TILE_SIZE x TILE_SIZE pixels
@@ -94,7 +89,6 @@ float2 tile_uv_to_texture_uv( float2 p_tile_uv,
     return p_tile_uv * (l_resolution_without_border - 1.0f) / p_tile_resolution + (0.5f + p_tile_border_size) / p_tile_resolution;
 }
 
-//-----------------------------------------------------------------------------
 // Converts coordinate in pixels to UV
 // Pixels coorinates [0..tile_res + 2 * tile_border - 1]
 // Pixel with a coordinate (tile_border - 1) is mapped ot UV 0
@@ -107,7 +101,6 @@ float2 pixel_coords_to_tile_uv( uint2 p_pixel_coords,
     return tile_position_to_tile_uv(l_tile_position);
 }
 
-//-----------------------------------------------------------------------------
 float sample_terrain_height(float2 p_tile_position,
                             uint2 p_heightmap_resolution,
                             uint p_heightmap_border,
@@ -121,7 +114,6 @@ float sample_terrain_height(float2 p_tile_position,
     return l_height;
 }
 
-//-----------------------------------------------------------------------------
 float3 sample_terrain_position( sb_tile_instance_to_bake_t p_tile,
                                 float2 p_tile_position,
                                 float2 p_heightmap_resolution,
@@ -129,14 +121,14 @@ float3 sample_terrain_position( sb_tile_instance_to_bake_t p_tile,
                                 Texture2DArray p_heightmap_array)
 {
     // Get basic vertex position on sphere from quad patch
-    float3 l_vertex = p_tile.m_patch_data_c00 +
-                      p_tile.m_patch_data_c10 * p_tile_position.x +
-                      p_tile.m_patch_data_c01 * p_tile_position.y +
-                      p_tile.m_patch_data_c11 * p_tile_position.x * p_tile_position.y +
-                      p_tile.m_patch_data_c20 * p_tile_position.x * p_tile_position.x +
-                      p_tile.m_patch_data_c02 * p_tile_position.y * p_tile_position.y +
-                      p_tile.m_patch_data_c21 * p_tile_position.x * p_tile_position.x * p_tile_position.y +
-                      p_tile.m_patch_data_c12 * p_tile_position.x * p_tile_position.y * p_tile_position.y;
+    float3 l_vertex = p_tile.m_patch_data.m_c00 +
+                      p_tile.m_patch_data.m_c10 * p_tile_position.x +
+                      p_tile.m_patch_data.m_c01 * p_tile_position.y +
+                      p_tile.m_patch_data.m_c11 * p_tile_position.x * p_tile_position.y +
+                      p_tile.m_patch_data.m_c20 * p_tile_position.x * p_tile_position.x +
+                      p_tile.m_patch_data.m_c02 * p_tile_position.y * p_tile_position.y +
+                      p_tile.m_patch_data.m_c21 * p_tile_position.x * p_tile_position.x * p_tile_position.y +
+                      p_tile.m_patch_data.m_c12 * p_tile_position.x * p_tile_position.y * p_tile_position.y;
 
     // Interpolate normals
     float3 l_normal_01 = lerp(p_tile.m_normal_0, p_tile.m_normal_1, p_tile_position.x);
@@ -153,7 +145,6 @@ float3 sample_terrain_position( sb_tile_instance_to_bake_t p_tile,
     return l_vertex;
 }
 
-//-----------------------------------------------------------------------------
 float3 sample_terrain_normal(   sb_tile_instance_to_bake_t p_tile,
                                 float2 p_tile_position,
                                 float2 p_heightmap_resolution,
@@ -178,7 +169,6 @@ float3 sample_terrain_normal(   sb_tile_instance_to_bake_t p_tile,
     return l_normal_ws;
 }
 
-//-----------------------------------------------------------------------------
 //! \brief Sample terrain normal in tile local space
 float3 sample_terrain_normal(   float2 p_tile_position,
                                 uint2 p_heightmap_resolution,
@@ -224,7 +214,6 @@ float3 sample_terrain_normal(   float2 p_tile_position,
     return l_normal;
 }
 
-//-----------------------------------------------------------------------------
 float2 get_tile_position(sb_render_item_t p_render_item, uint p_index, uint p_vertex_resolution)
 {
     // Get tile position
@@ -240,7 +229,6 @@ float2 get_tile_position(sb_render_item_t p_render_item, uint p_index, uint p_ve
     return l_tile_position;
 }
 
-//-----------------------------------------------------------------------------
 // Return data index in vertex buffer
 uint get_tile_vertex_mesh_index(float2 p_tile_position, uint p_vertex_resolution)
 {
@@ -251,7 +239,6 @@ uint get_tile_vertex_mesh_index(float2 p_tile_position, uint p_vertex_resolution
     return l_vertex_index;
 }
 
-//-----------------------------------------------------------------------------
 mesh_vertex_t get_tile_vertex_mesh(sb_render_item_t p_render_item, uint p_tile_instance_offset, uint p_vertex_mesh_index)
 {
     // Init output
@@ -263,15 +250,14 @@ mesh_vertex_t get_tile_vertex_mesh(sb_render_item_t p_render_item, uint p_tile_i
     return l_mesh_vertex;
 }
 
-//-----------------------------------------------------------------------------
 terrain_sample_t sample_terrain(sb_render_item_t p_render_item, sb_tile_instance_t p_tile, float2 p_tile_position, uint p_vertex_resolution)
 {
     // Default-init
     terrain_sample_t l_sample = (terrain_sample_t)0;
 
     // Interpolate normals
-    float3 l_normal_01 = lerp(p_tile.m_normal_0.xyz, p_tile.m_normal_1.xyz, p_tile_position.x);
-    float3 l_normal_23 = lerp(p_tile.m_normal_3.xyz, p_tile.m_normal_2.xyz, p_tile_position.x);
+    float3 l_normal_01 = lerp(p_tile.m_basic_data.m_normal_0.xyz, p_tile.m_basic_data.m_normal_1.xyz, p_tile_position.x);
+    float3 l_normal_23 = lerp(p_tile.m_basic_data.m_normal_3.xyz, p_tile.m_basic_data.m_normal_2.xyz, p_tile_position.x);
     float3 l_normal_ws = lerp(l_normal_01, l_normal_23, p_tile_position.y);
     l_normal_ws = normalize(l_normal_ws);
 
@@ -279,7 +265,7 @@ terrain_sample_t sample_terrain(sb_render_item_t p_render_item, sb_tile_instance
     uint l_vertex_mesh_index = get_tile_vertex_mesh_index(p_tile_position, p_vertex_resolution);
 
     // Get buffer offset for each tile instance
-    uint l_instance_offset = p_tile.m_tile_index * p_vertex_resolution * p_vertex_resolution;
+    uint l_instance_offset = p_tile.m_basic_data.m_tile_index * p_vertex_resolution * p_vertex_resolution;
 
     // Unpack mesh
     mesh_vertex_t l_mesh_vertex = get_tile_vertex_mesh(p_render_item, l_instance_offset, l_vertex_mesh_index);
@@ -291,7 +277,6 @@ terrain_sample_t sample_terrain(sb_render_item_t p_render_item, sb_tile_instance
     return l_sample;
 }
 
-//-----------------------------------------------------------------------------
 // Lerp mesh vertex
 mesh_vertex_t lerp_mesh_vertex(mesh_vertex_t p_vertex_x,
                                mesh_vertex_t p_vertex_y,
@@ -305,20 +290,19 @@ mesh_vertex_t lerp_mesh_vertex(mesh_vertex_t p_vertex_x,
     return l_vertex;
 }
 
-//-----------------------------------------------------------------------------
 // Sample terrain with linear filtering
 terrain_sample_t sample_terrain_with_filtering(sb_render_item_t p_render_item, sb_tile_instance_t p_tile, float2 p_tile_position, uint p_vertex_resolution)
 {
     terrain_sample_t l_sample = (terrain_sample_t)0;
 
     // Interpolate normals
-    float3 l_normal_01 = lerp(p_tile.m_normal_0.xyz, p_tile.m_normal_1.xyz, p_tile_position.x);
-    float3 l_normal_23 = lerp(p_tile.m_normal_3.xyz, p_tile.m_normal_2.xyz, p_tile_position.x);
+    float3 l_normal_01 = lerp(p_tile.m_basic_data.m_normal_0.xyz, p_tile.m_basic_data.m_normal_1.xyz, p_tile_position.x);
+    float3 l_normal_23 = lerp(p_tile.m_basic_data.m_normal_3.xyz, p_tile.m_basic_data.m_normal_2.xyz, p_tile_position.x);
     float3 l_normal_ws = lerp(l_normal_01, l_normal_23, p_tile_position.y);
     l_normal_ws = normalize(l_normal_ws);
 
     // Get buffer offset for each tile instance
-    uint l_instance_offset = p_tile.m_tile_index * p_vertex_resolution * p_vertex_resolution;
+    uint l_instance_offset = p_tile.m_basic_data.m_tile_index * p_vertex_resolution * p_vertex_resolution;
 
     // Get vertex indices
     float2 l_vertex_position = p_tile_position * (p_vertex_resolution - 1);
@@ -347,7 +331,6 @@ terrain_sample_t sample_terrain_with_filtering(sb_render_item_t p_render_item, s
     return l_sample;
 }
 
-//-----------------------------------------------------------------------------
 terrain_sample_t sample_terrain(sb_render_item_t p_render_item, sb_tile_instance_t p_tile, float2 p_tile_position, uint p_vertex_resolution, bool p_use_filtering)
 {
     if (p_use_filtering)
@@ -360,14 +343,13 @@ terrain_sample_t sample_terrain(sb_render_item_t p_render_item, sb_tile_instance
     }
 }
 
-//-----------------------------------------------------------------------------
 float3 sample_terrain_position(sb_render_item_t p_render_item, sb_tile_instance_t p_tile, float2 p_tile_position, uint p_vertex_resolution)
 {
     // Get index from tile position
     uint l_vertex_mesh_index = get_tile_vertex_mesh_index(p_tile_position, p_vertex_resolution);
 
     // Get buffer offset for each tile instance
-    uint l_instance_offset = p_tile.m_tile_index * p_vertex_resolution * p_vertex_resolution;
+    uint l_instance_offset = p_tile.m_basic_data.m_tile_index * p_vertex_resolution * p_vertex_resolution;
 
     // Get position from buffer
     ByteAddressBuffer l_buffer = ResourceDescriptorHeap[NonUniformResourceIndex(p_render_item.m_position_buffer_srv)];
@@ -378,7 +360,6 @@ float3 sample_terrain_position(sb_render_item_t p_render_item, sb_tile_instance_
     return l_position_camera_local;
 }
 
-//-----------------------------------------------------------------------------
 terrain_material_t sample_terrain_material( uint p_tile_index,
                                             float2 p_tile_uv,
                                             uint p_tile_height_array_index_srv,
@@ -415,10 +396,11 @@ terrain_material_t sample_terrain_material( uint p_tile_index,
                                             TEXTURE_ARRAY_MIP_LEVEL);
 
     // Copy
-    l_material.m_base_color = gamma_to_linear(l_vt0.rgb);
-    l_material.m_normal_ts  = normalize(l_vt1.xyz * 2.0f - 1.0f);
-    l_material.m_roughness  = l_vt0.a;
-    l_material.m_ao         = l_vt1.w;
+    l_material.m_base_color     = gamma_to_linear(l_vt0.rgb);
+    l_material.m_normal_ts.xy   = l_vt1.xy * 2.0f - 1.0f;
+    l_material.m_normal_ts.z    = sqrt(1.0f - dot(l_material.m_normal_ts.xy, l_material.m_normal_ts.xy));
+    l_material.m_roughness      = l_vt0.a;
+    l_material.m_ao             = l_vt1.w;
 
     l_material.m_debug_height = l_heightmap_array.SampleLevel(  (SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP],
                                                                 float3(l_uv, p_tile_index),
@@ -429,13 +411,12 @@ terrain_material_t sample_terrain_material( uint p_tile_index,
     return l_material;
 }
 
-//-----------------------------------------------------------------------------
 terrain_material_t sample_terrain_material( sb_tile_instance_t p_tile,
                                             sb_quadtree_material_t p_quadtree_material,
                                             float2 p_tile_uv,
                                             float3 p_position_ws_local)
 {
-    terrain_material_t l_material = sample_terrain_material(p_tile.m_tile_index,
+    terrain_material_t l_material = sample_terrain_material(p_tile.m_basic_data.m_tile_index,
                                                             p_tile_uv,
                                                             p_quadtree_material.m_tile_height_array_index_srv,
                                                             p_quadtree_material.m_tile_vt0_array_index_srv,
@@ -452,7 +433,7 @@ terrain_material_t sample_terrain_material( sb_tile_instance_t p_tile,
                                             p_quadtree_material.m_elevation_tile_resolution,
                                             p_quadtree_material.m_elevation_tile_border);
         float4 l_texture = l_texturemap_array.SampleLevel((SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP],
-                                                          float3(l_uv, p_tile.m_tile_index),
+                                                          float3(l_uv, p_tile.m_basic_data.m_tile_index),
                                                           TEXTURE_ARRAY_MIP_LEVEL);
         float3 l_remapped_color = l_texture.rgb / 255.0f;
 
@@ -483,7 +464,6 @@ terrain_material_t sample_terrain_material( sb_tile_instance_t p_tile,
     return l_material;
 }
 
-//-----------------------------------------------------------------------------
 // Return true if p_tile_position changes to a value that does not match the exact vertex in buffer
 void terrain_blend_mask_vertex( sb_tile_instance_t p_tile,
                                 uint p_vertex_resolution,
@@ -510,9 +490,7 @@ void terrain_blend_mask_vertex( sb_tile_instance_t p_tile,
     if (any(p_tile_position == 0) ||
         any(p_tile_position == 1.0f))
     {
-        //-----------------------------------------------------------------
         // Edges
-        //-----------------------------------------------------------------
 
         // Left
         [flatten]
@@ -554,9 +532,7 @@ void terrain_blend_mask_vertex( sb_tile_instance_t p_tile,
             p_blend_mask = max(p_blend_mask, p_tile.m_neighbours.w);
         }
 
-        //-----------------------------------------------------------------
         // Corners: no need to blend positions as corners never move!
-        //-----------------------------------------------------------------
 
         // Top-left
         [flatten]
@@ -600,7 +576,6 @@ void terrain_blend_mask_vertex( sb_tile_instance_t p_tile,
     }
 }
 
-//-----------------------------------------------------------------------------
 float terrain_blend_mask_pixel( sb_tile_instance_t p_tile,
                                 float2 p_tile_position,
                                 float p_blend_range)
@@ -609,7 +584,6 @@ float terrain_blend_mask_pixel( sb_tile_instance_t p_tile,
     float l_blend_mask = 0;
     float l_blend_range = saturate(p_blend_range);
 
-    //-------------------------------------------------------------------------
     // To make sure we get a continuous terrain tile's edge and internal logic will be different
     // Edge: use edge factor
     // Internal: use tile's blend factor
@@ -617,9 +591,7 @@ float terrain_blend_mask_pixel( sb_tile_instance_t p_tile,
     float2 l_mask_border = 1.0 - p_tile_position / l_blend_range;
     float2 l_mask_border_inv = 1.0 - (1.0 - p_tile_position) / l_blend_range;
 
-    //-------------------------------------------------------------------------
     // Edges
-    //-------------------------------------------------------------------------
 
     // Left, right, bottom, top
     l_blend_mask = max(l_blend_mask, p_tile.m_neighbours.x * l_mask_border.x);
@@ -627,9 +599,7 @@ float terrain_blend_mask_pixel( sb_tile_instance_t p_tile,
     l_blend_mask = max(l_blend_mask, p_tile.m_neighbours.z * l_mask_border.y);
     l_blend_mask = max(l_blend_mask, p_tile.m_neighbours.w * l_mask_border_inv.y);
 
-    //-------------------------------------------------------------------------
     // Corners
-    //-------------------------------------------------------------------------
 
     // Top-left, Top-right, Bottom-left, Bottom-right
     l_blend_mask = max(l_blend_mask, p_tile.m_neighbours_diagonal.x * min(l_mask_border.x, l_mask_border_inv.y));
@@ -640,7 +610,6 @@ float terrain_blend_mask_pixel( sb_tile_instance_t p_tile,
     return l_blend_mask;
 }
 
-//-----------------------------------------------------------------------------
 //! \brief Sample elevation with point filtering
 float sample_elevation_point(StructuredBuffer<float> p_buffer, int2 p_elevation_coords, int2 p_elevation_resolution, int p_elevation_data_offset)
 {
@@ -651,7 +620,6 @@ float sample_elevation_point(StructuredBuffer<float> p_buffer, int2 p_elevation_
     return p_buffer[p_elevation_data_offset + l_elevation_pixel_offset];
 }
 
-//-----------------------------------------------------------------------------
 //! \brief Sample elevation with linear filtering
 float sample_elevation_linear_from_tile_uv(StructuredBuffer<float> p_buffer, float2 p_tile_uv, int2 p_elevation_resolution, int p_elevation_border, int p_elevation_data_offset)
 {
@@ -675,7 +643,6 @@ float sample_elevation_linear_from_tile_uv(StructuredBuffer<float> p_buffer, flo
     return l_elevation;
 }
 
-//-----------------------------------------------------------------------------
 void blend_with_parent( inout terrain_sample_t p_terrain_sample,
                         float2 p_tile_position,
                         sb_tile_instance_t p_tile,
@@ -697,7 +664,6 @@ void blend_with_parent( inout terrain_sample_t p_terrain_sample,
     p_terrain_sample.m_surface_normal_ws = lerp(p_terrain_sample.m_surface_normal_ws, l_sample_parent.m_surface_normal_ws, p_blend_mask);
 }
 
-//-----------------------------------------------------------------------------
 void blend_with_parent(inout terrain_material_t p_material,
                        sb_tile_instance_t p_tile,
                        sb_quadtree_material_t p_quadtree_material,
@@ -721,7 +687,7 @@ void blend_with_parent(inout terrain_material_t p_material,
 
         // Get blend_mask
         float l_blend_mask = terrain_blend_mask_pixel(p_tile, p_tile_position, p_quadtree_material.m_blend_range);
-        l_blend_mask = max(l_blend_mask, p_blend_mask_vertex); 
+        l_blend_mask = max(l_blend_mask, p_blend_mask_vertex);
 
         terrain_material_t l_material_parent = sample_terrain_material(l_tile_parent, p_quadtree_material, l_tile_uv_parent, p_position_ws_local);
         p_material.m_base_color = lerp(p_material.m_base_color, l_material_parent.m_base_color, l_blend_mask);
@@ -731,7 +697,6 @@ void blend_with_parent(inout terrain_material_t p_material,
     }
 }
 
-//-----------------------------------------------------------------------------
 //! \brief Apply skirt on tile borders to avoid cracks between tiles
 void apply_skirt(float2 p_tile_position,
                  float p_skirt_distance_threshold_squared,
@@ -782,6 +747,21 @@ void apply_skirt(float2 p_tile_position,
     p_position_camera_local += l_skirt_dir * p_skirt_scale;
 }
 
+void draw_tile_border(
+    float2 position_local,
+    inout float4 direct_lighting_output,
+    inout float4 indirect_lighting_output)
+{
+    float border_size = 0.01;
+    if (any(position_local < border_size) || any(position_local > 1.0 - border_size))
+    {
+        direct_lighting_output = (1.0 - direct_lighting_output);
+        direct_lighting_output.r = 0.2;
+        direct_lighting_output.gb *= 0.1;
+        indirect_lighting_output = 0;
+    }
+}
+
 void get_quadtree_debug_color(
     sb_quadtree_material_t quadtree_material,
     sb_tile_instance_t tile,
@@ -793,16 +773,16 @@ void get_quadtree_debug_color(
 {
     if(quadtree_material.m_debug_terrain_mode != -1)
     {
-        if (tile.m_available)
+        if (tile.m_basic_data.m_available)
         {
             if (quadtree_material.m_debug_terrain_mode == 0)//height
             {
                 direct_lighting_output = float4(1, 0, 0, 0);
-    
+
                 if (quadtree_material.m_debug_sub_mode == 0)//gradient
                 {
                     float h = clamp(material.m_debug_height, quadtree_material.m_height_debug_start, quadtree_material.m_height_debug_end);
-            
+
                     float f = (h - quadtree_material.m_height_debug_start) / (quadtree_material.m_height_debug_end - quadtree_material.m_height_debug_start);
                     float3 start_color = (1.0f - f) * quadtree_material.m_height_debug_start_color;
                     float3 end_color = f * quadtree_material.m_height_debug_end_color;
@@ -831,19 +811,19 @@ void get_quadtree_debug_color(
             else if (quadtree_material.m_debug_terrain_mode == 2)//splat map
             {
                 ByteAddressBuffer splat_buffer = ResourceDescriptorHeap[tile.m_splat_buffer_srv];
-    
+
                 float4 tensor_shape = quadtree_material.m_splat_shape;
-    
+
                 float2 tile_coord = float2(material.m_tmp_uv.x, material.m_tmp_uv.y) * tensor_shape.zw;
                 float2 tile_uv = frac(tile_coord);
-    
+
                 uint4 offset_in_tile = trunc(float4(0, 0, tile_coord));
                 uint offset =
                     offset_in_tile.x +
                     offset_in_tile.y * uint(tensor_shape.x) +
                     offset_in_tile.z * uint(tensor_shape.x * 1) +
                     offset_in_tile.w * uint(tensor_shape.x * 1 * tensor_shape.z);
-    
+
                 if (quadtree_material.m_debug_sub_mode == 0)//single
                 {
                     float v = splat_buffer.Load<float>(4 * (tile.m_splat_data_offset + quadtree_material.m_debug_terrain_splat_channel * quadtree_material.m_splat_channel_offset + offset));
@@ -854,7 +834,7 @@ void get_quadtree_debug_color(
                 {
                     direct_lighting_output = (float4)0;
                     indirect_lighting_output = 0;
-    
+
                     for (uint i = 0; i < quadtree_material.m_num_splat_map_channels_to_show; ++i)
                     {
                         uint channel = quadtree_material.m_splat_map_channels_to_show[i];
@@ -872,7 +852,7 @@ void get_quadtree_debug_color(
                 {
                     float2 uv_vt = tile_uv_to_texture_uv(tile_uv, quadtree_material.m_vt_resolution, quadtree_material.m_vt_border);
                     Texture2DArray vt_array = ResourceDescriptorHeap[quadtree_material.m_tile_vt0_array_index_srv];
-                    float4 vt = vt_array.SampleLevel((SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP], float3(uv_vt, tile.m_tile_index), TEXTURE_ARRAY_MIP_LEVEL);
+                    float4 vt = vt_array.SampleLevel((SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP], float3(uv_vt, tile.m_basic_data.m_tile_index), TEXTURE_ARRAY_MIP_LEVEL);
                     direct_lighting_output = float4(gamma_to_linear(vt.rgb), 0);
                     indirect_lighting_output = 0;
 
@@ -881,7 +861,7 @@ void get_quadtree_debug_color(
                 {
                     float2 uv_vt = tile_uv_to_texture_uv(tile_uv, quadtree_material.m_vt_resolution, quadtree_material.m_vt_border);
                     Texture2DArray vt_array = ResourceDescriptorHeap[quadtree_material.m_tile_vt0_array_index_srv];
-                    float4 vt = vt_array.SampleLevel((SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP], float3(uv_vt, tile.m_tile_index), TEXTURE_ARRAY_MIP_LEVEL);
+                    float4 vt = vt_array.SampleLevel((SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP], float3(uv_vt, tile.m_basic_data.m_tile_index), TEXTURE_ARRAY_MIP_LEVEL);
                     direct_lighting_output = float4(vt.aaa, 0);
                     indirect_lighting_output = 0;
                 }
@@ -889,7 +869,7 @@ void get_quadtree_debug_color(
                 {
                     float2 uv_vt = tile_uv_to_texture_uv(tile_uv, quadtree_material.m_vt_resolution, quadtree_material.m_vt_border);
                     Texture2DArray vt_array = ResourceDescriptorHeap[quadtree_material.m_tile_vt1_array_index_srv];
-                    float4 vt = vt_array.SampleLevel((SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP], float3(uv_vt, tile.m_tile_index), TEXTURE_ARRAY_MIP_LEVEL);
+                    float4 vt = vt_array.SampleLevel((SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP], float3(uv_vt, tile.m_basic_data.m_tile_index), TEXTURE_ARRAY_MIP_LEVEL);
                     direct_lighting_output = float4(vt.rgb, 0);
                     indirect_lighting_output = 0;
                 }
@@ -897,7 +877,7 @@ void get_quadtree_debug_color(
                 {
                     float2 uv_vt = tile_uv_to_texture_uv(tile_uv, quadtree_material.m_vt_resolution, quadtree_material.m_vt_border);
                     Texture2DArray vt_array = ResourceDescriptorHeap[quadtree_material.m_tile_vt1_array_index_srv];
-                    float4 vt = vt_array.SampleLevel((SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP], float3(uv_vt, tile.m_tile_index), TEXTURE_ARRAY_MIP_LEVEL);
+                    float4 vt = vt_array.SampleLevel((SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP], float3(uv_vt, tile.m_basic_data.m_tile_index), TEXTURE_ARRAY_MIP_LEVEL);
                     direct_lighting_output = float4(vt.aaa, 0);
                     indirect_lighting_output = 0;
                 }
@@ -918,7 +898,7 @@ void get_quadtree_debug_color(
                     const uint resolution = quadtree_material.m_tensor_debug_buffer_resolution;
                     const uint channel_stride = resolution * resolution;
 
-                    uint base_offset = tile.m_tile_index * resolution * resolution * channel_count;
+                    uint base_offset = tile.m_basic_data.m_tile_index * resolution * resolution * channel_count;
                     uint index_x = uint(tex_uv.x * resolution);
                     uint index_y = uint(tex_uv.y * resolution);
                     uint index = index_x + index_y * resolution;
@@ -955,7 +935,7 @@ void get_quadtree_debug_color(
                     const uint resolution = quadtree_material.m_tensor_debug_buffer_resolution;
                     const uint channel_stride = resolution * resolution;
 
-                    uint base_offset = tile.m_tile_index * resolution * resolution * channel_count;
+                    uint base_offset = tile.m_basic_data.m_tile_index * resolution * resolution * channel_count;
                     uint index_x = uint(uv.x * resolution);
                     uint index_y = uint(uv.y * resolution);
                     uint index = index_x + index_y * resolution;
@@ -988,7 +968,7 @@ void get_quadtree_debug_color(
                             tensor_debug_color[channel_idx] = texture[channel_idx];
                         }
                     }
-    
+
                     direct_lighting_output = float4(tensor_debug_color, 0) * quadtree_material.m_tensor_visualizer_scalar;
                     indirect_lighting_output = float4(tensor_debug_color, 0) * quadtree_material.m_tensor_visualizer_scalar;
                 }
@@ -1015,7 +995,7 @@ void get_quadtree_debug_color(
                     else if (org_uv.y <= 0.5)
                     {
                         curr_grid_index.y = 1;
-                        number_to_show = tile.m_tile_level;
+                        number_to_show = tile.m_basic_data.m_tile_level;
                     }
                     else if (org_uv.y <= 0.75)
                     {
@@ -1066,28 +1046,19 @@ void get_quadtree_debug_color(
         }
     }
 
-    // Tile border
-    float border_size = 0.01;
-    if (quadtree_material.m_tile_border_enabled > 0 &&
-        (any(position_local < border_size) || 
-         any(position_local > 1.0 - border_size)))
+    if (quadtree_material.m_tile_border_enabled > 0)
     {
-        direct_lighting_output = (1.0 - direct_lighting_output);
-        direct_lighting_output.r = 0.2;
-        direct_lighting_output.gb *= 0.1;
-        indirect_lighting_output = 0;
+        draw_tile_border(position_local, direct_lighting_output, indirect_lighting_output);
     }
 }
 
-//-----------------------------------------------------------------------------
 struct terrain_vertex_t
 {
     float3 m_position_ws_local;
     float3 m_normal;
 };
 
-//-----------------------------------------------------------------------------
-terrain_vertex_t get_terrain_vertex(sb_tile_instance_t p_tile, float2 p_tile_position, uint p_tile_height_array_index_srv, uint2 p_elevation_tile_resolution, uint p_elevation_tile_border)
+terrain_vertex_t get_terrain_vertex(sb_tile_instance_base p_tile, float2 p_tile_position, uint p_tile_height_array_index_srv, uint2 p_elevation_tile_resolution, uint p_elevation_tile_border)
 {
     terrain_vertex_t l_mesh_vertex = (terrain_vertex_t)0;
 
@@ -1098,14 +1069,14 @@ terrain_vertex_t get_terrain_vertex(sb_tile_instance_t p_tile, float2 p_tile_pos
     l_normal_ws = normalize(l_normal_ws);
 
     // Quad patch
-    float3 l_point = p_tile.m_patch_data_c00.xyz +
-                     p_tile.m_patch_data_c10.xyz * p_tile_position.x + 
-                     p_tile.m_patch_data_c01.xyz * p_tile_position.y + 
-                     p_tile.m_patch_data_c11.xyz * p_tile_position.x * p_tile_position.y + 
-                     p_tile.m_patch_data_c20.xyz * p_tile_position.x * p_tile_position.x + 
-                     p_tile.m_patch_data_c02.xyz * p_tile_position.y * p_tile_position.y + 
-                     p_tile.m_patch_data_c21.xyz * p_tile_position.x * p_tile_position.x * p_tile_position.y + 
-                     p_tile.m_patch_data_c12.xyz * p_tile_position.x * p_tile_position.y * p_tile_position.y;
+    float3 l_point = p_tile.m_patch_data.m_c00.xyz +
+                     p_tile.m_patch_data.m_c10.xyz * p_tile_position.x +
+                     p_tile.m_patch_data.m_c01.xyz * p_tile_position.y +
+                     p_tile.m_patch_data.m_c11.xyz * p_tile_position.x * p_tile_position.y +
+                     p_tile.m_patch_data.m_c20.xyz * p_tile_position.x * p_tile_position.x +
+                     p_tile.m_patch_data.m_c02.xyz * p_tile_position.y * p_tile_position.y +
+                     p_tile.m_patch_data.m_c21.xyz * p_tile_position.x * p_tile_position.x * p_tile_position.y +
+                     p_tile.m_patch_data.m_c12.xyz * p_tile_position.x * p_tile_position.y * p_tile_position.y;
 
     // TODO: can be moved to tile generation shader!
     // Vertex offset

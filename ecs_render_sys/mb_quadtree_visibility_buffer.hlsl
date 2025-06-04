@@ -1,11 +1,7 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "../shared_shaders/mb_shared_common.hlsl"
-
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
 
 // CBV
 ConstantBuffer<cb_push_gltf_t>                  g_push_constants        : register(REGISTER_PUSH_CONSTANTS);
@@ -16,16 +12,12 @@ ConstantBuffer<cb_push_gltf_t>                  g_push_constants        : regist
 #include "../helper_shaders/mb_quadtree_common.hlsl"
 #include "../helper_shaders/mb_wind.hlsl"
 
-//-----------------------------------------------------------------------------
-// Structures
-//-----------------------------------------------------------------------------
-
 struct ps_input_t
 {
                         float4  m_position_ps   : SV_POSITION;
     nointerpolation     uint    m_instance_id   : ID0;
 #if defined(MB_RENDER_SELECTION_PASS_ENABLED)
-    nointerpolation     uint m_entity_id        : TEXCOORD0;        
+    nointerpolation     uint m_entity_id        : TEXCOORD0;
 #endif
 };
 
@@ -38,21 +30,12 @@ struct ps_output_t
 #endif //MB_RENDER_SELECTION_PASS_ENABLED
 };
 
-//-----------------------------------------------------------------------------
-// Utility functions
-//-----------------------------------------------------------------------------
-
 uint pack_classification()
 {
     uint l_result = e_lighting_classification_mask_terrain;
     return l_result;
 }
 
-//-----------------------------------------------------------------------------
-// VS
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 ps_input_t vs_gpu_instancing(   uint p_vertex_id    : SV_VertexID,
                                 uint p_instance_id  : SV_InstanceID)
 {
@@ -87,7 +70,7 @@ ps_input_t vs_gpu_instancing(   uint p_vertex_id    : SV_VertexID,
 #if defined(TERRAIN_BLENDING)
     bool l_position_moved = false;
 
-    // Move vertives to match neighboring tiles
+    // Move vertices to match neighboring tiles
     terrain_blend_mask_vertex(l_tile,
                               l_vertex_resolution,
                               l_tile_position,
@@ -131,7 +114,7 @@ ps_input_t vs_gpu_instancing(   uint p_vertex_id    : SV_VertexID,
 
     // Vertex shader output
     l_result.m_position_ps = l_pos_ps;
-    l_result.m_instance_id = p_instance_id;
+    l_result.m_instance_id = p_instance_id + g_push_constants.m_render_instance_buffer_offset;
 #if defined(MB_RENDER_SELECTION_PASS_ENABLED)
     l_result.m_entity_id = l_render_instance.m_entity_id;
 #endif //MB_RENDER_SELECTION_PASS_ENABLED
@@ -139,29 +122,21 @@ ps_input_t vs_gpu_instancing(   uint p_vertex_id    : SV_VertexID,
     return l_result;
 }
 
-//-----------------------------------------------------------------------------
-// PS
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 void ps_shadow_pass(ps_input_t p_input)
 {
 }
 
-//-----------------------------------------------------------------------------
 void ps_main()
 {
 }
 
-//-----------------------------------------------------------------------------
 void ps_impostor_data_pass(ps_input_t p_input)
 {
 }
 
-//-----------------------------------------------------------------------------
 ps_output_t ps_visibility_pass(
-    ps_input_t p_input, 
-    uint p_primitive_id : SV_PrimitiveID, 
+    ps_input_t p_input,
+    uint p_primitive_id : SV_PrimitiveID,
     bool p_front_face : SV_IsFrontFace)
 {
     ps_output_t l_ps_output = (ps_output_t)0;
@@ -175,10 +150,4 @@ ps_output_t ps_visibility_pass(
 #endif
 
     return l_ps_output;
-}
-
-//-----------------------------------------------------------------------------
-void ps_occlusion_pre_pass(ps_input_t p_input)
-{
-
 }

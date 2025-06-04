@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 // Optimization ideas:
 //  - Disable three POVs blending and/or parallax on very distant impostors
@@ -7,15 +7,16 @@
 #include "../helper_shaders/mb_common.hlsl"
 #include "mb_lighting.hlsl"
 
-//-----------------------------------------------------------------------------
-// Structures
-//-----------------------------------------------------------------------------
-
 struct ps_input_t
 {
     float4 m_position           : SV_POSITION;
     float3 m_impostor_center_ws : POSITION0;
     float3 m_vertex_camera_ws   : POSITION1;
+
+#if defined(MB_RENDER_VELOCITY_PASS_ENABLED)
+    float3 m_proj_pos_curr      : POSITION2;
+    float3 m_proj_pos_prev      : POSITION3;
+#endif
 
     nointerpolation uint2  m_tile_0  : TEXCOORD0;
     nointerpolation uint2  m_tile_1  : TEXCOORD1;
@@ -29,15 +30,8 @@ struct ps_input_t
     uint m_instance_id : SV_InstanceID;
 };
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 ConstantBuffer<cb_push_impostor_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
-// VS
-//-----------------------------------------------------------------------------
 float3 uv_to_hemisphere_octahedron(float2 p_uv)
 {
     float3 l_position = float3(p_uv.x - p_uv.y, 0.f, -1.f + p_uv.x + p_uv.y);
@@ -46,7 +40,6 @@ float3 uv_to_hemisphere_octahedron(float2 p_uv)
     return normalize(l_position);
 }
 
-//-----------------------------------------------------------------------------
 float2 hemisphere_octahedron_to_uv(float3 p_view_vector)
 {
     // Restrict to top hemisphere
@@ -62,7 +55,6 @@ float2 hemisphere_octahedron_to_uv(float3 p_view_vector)
     return saturate(l_uv * 0.5f + float2(0.5f, 0.5f));
 }
 
-//-----------------------------------------------------------------------------
 void get_basis_xy(float3 p_up, float3 p_forward, out float3 p_x, out float3 p_y)
 {
     //p_up = abs(p_forward.z) < 0.999f ? float3(0,0,1) : float3(1,0,0);
@@ -70,7 +62,6 @@ void get_basis_xy(float3 p_up, float3 p_forward, out float3 p_x, out float3 p_y)
     p_y = normalize(cross(p_forward, p_x      ));
 }
 
-//-----------------------------------------------------------------------------
 float3x3 get_transform_matrix(sb_impostor_instance_t p_instance)
 {
     float l_sin = 0;
@@ -88,7 +79,6 @@ float3x3 get_transform_matrix(sb_impostor_instance_t p_instance)
     return l_combined_transform;
 }
 
-//-----------------------------------------------------------------------------
 float2 get_projected_uv(float3 p_octahedral_forward, float3 p_octahedral_x, float3 p_octahedral_y, float3 p_impostor_center_ws, float3 p_vertex_camera_ws, float p_model_radius)
 {
     // Compute intersection of octahedron facing impostor plane with ray passing through camera impostor vertex
@@ -110,7 +100,6 @@ float2 get_projected_uv(float3 p_octahedral_forward, float3 p_octahedral_x, floa
     return (l_proj_uv/(2 * p_model_radius)) + 0.5;
 }
 
-//-----------------------------------------------------------------------------
 float4 get_tile_uv_and_frame(uint2 p_tile, sb_impostor_instance_t p_instance, sb_impostor_item_t p_item, float3 p_impostor_center_ws, float3 p_vertex_camera_ws)
 {
     // Compute octahedral basis and projected UV
@@ -133,7 +122,6 @@ float4 get_tile_uv_and_frame(uint2 p_tile, sb_impostor_instance_t p_instance, sb
     return float4(l_uv, l_frame);
 }
 
-//-----------------------------------------------------------------------------
 ps_input_t vs_main(uint p_vertex_id   : SV_VertexID,
                    uint p_instance_id : SV_InstanceID)
 {
@@ -200,12 +188,17 @@ ps_input_t vs_main(uint p_vertex_id   : SV_VertexID,
     l_result.m_uv_and_frame_2 = get_tile_uv_and_frame(l_tile_2, l_instance, l_item, l_center_ws, l_vertex_camera_ws);
 
     l_result.m_instance_id = l_instance_id;
+
+#if defined(MB_RENDER_VELOCITY_PASS_ENABLED)
+    float4 l_pos_cs_prev = mul(float4(l_vertex_camera_ws,1), l_camera.m_view_proj_local_prev);
+
+    l_result.m_proj_pos_curr = l_pos_cs.xyw;
+    l_result.m_proj_pos_prev = l_pos_cs_prev.xyw;
+#endif
+
     return l_result;
 }
 
-//-----------------------------------------------------------------------------
-// PS
-//-----------------------------------------------------------------------------
 void get_projected_data(out float4 p_albedo_alpha, out float4 p_normal_depth, uint2 p_tile, float4 p_uv_and_frame, sb_impostor_instance_t p_instance, sb_impostor_item_t p_item, float3 p_impostor_center_ws, float3 p_vertex_camera_ws)
 {
     //  HACK: We should be perspective correcting the UV and frame, but it's not noticeable. Uncomment the following
@@ -224,8 +217,16 @@ void get_projected_data(out float4 p_albedo_alpha, out float4 p_normal_depth, ui
     p_albedo_alpha = bindless_tex2d_sample(p_item.m_albedo_alpha_srv, l_sampler, l_uv_tile);
 }
 
-//-----------------------------------------------------------------------------
-float4 ps_main(ps_input_t p_input) : SV_TARGET
+struct ps_output_t
+{
+    float4 m_direct_lighting : SV_TARGET0;
+    float4 m_indirect_lighting : SV_TARGET1;
+#if defined(MB_RENDER_VELOCITY_PASS_ENABLED)
+    float2 m_velocity : SV_TARGET2;
+#endif
+};
+
+ps_output_t ps_main(ps_input_t p_input)
 {
     StructuredBuffer<sb_impostor_instance_t> l_instance_list = ResourceDescriptorHeap[g_push_constants.m_instance_buffer_srv];
     StructuredBuffer<sb_impostor_item_t> l_item_list = ResourceDescriptorHeap[g_push_constants.m_item_buffer_srv];
@@ -265,7 +266,7 @@ float4 ps_main(ps_input_t p_input) : SV_TARGET
     // TODO: Currently hardcoded, might add to baked data if really necessary
     float l_metallic = 0;
     float l_base_color_factor = 1.f;
-    float l_roughness = 0.f;
+    float l_roughness = 1.f;
     float l_ao = 1.f;
 
     float3 l_base_color = gamma_to_linear(l_albedo_alpha.rgb * l_base_color_factor);
@@ -286,19 +287,35 @@ float4 ps_main(ps_input_t p_input) : SV_TARGET
         l_planet_normal,
         l_ao,
         ResourceDescriptorHeap[g_push_constants.m_light_list_cbv],
-        0,                       // shadow_caster_count
-        RAL_NULL_BINDLESS_INDEX, // shadow_caster_srv,
+        g_push_constants.m_shadow_caster_count,
+        g_push_constants.m_shadow_caster_srv,
         g_push_constants.m_exposure_value,
         g_push_constants.m_dfg_texture_srv,
         g_push_constants.m_diffuse_ld_texture_srv,
         g_push_constants.m_specular_ld_texture_srv,
         g_push_constants.m_dfg_texture_size,
         g_push_constants.m_specular_ld_mip_count,
-        g_push_constants.m_gsm_srv, 
+        g_push_constants.m_gsm_srv,
         g_push_constants.m_gsm_camera_view_local_proj,
+        (float3x3)l_camera.m_align_ground_rotation,
         l_direct_lighting,
         l_indirect_lighting);
 
-    float3 l_final_color = l_direct_lighting + l_indirect_lighting;
-    return float4(pack_lighting(l_final_color), 1);
+    ps_output_t l_ps_output;
+
+    l_ps_output.m_direct_lighting = float4(pack_lighting(l_direct_lighting), 1.0f);
+    l_ps_output.m_indirect_lighting = float4(pack_lighting(l_indirect_lighting), 1.0f);
+
+    // When raytracing is used for diffuse GI - no need to compute indirect lighting
+    // However, we need diffuse reflectance to multiply indirect lighting computed with DXR
+    // Primary rays are not traced, so we need diffuse reflectance from V-Buffer pass
+#if defined(MB_RAYTRACING_DIFFUSE_GI)
+    l_ps_output.m_indirect_lighting = float4(l_diffuse_reflectance, 0);
+#endif
+
+#if defined(MB_RENDER_VELOCITY_PASS_ENABLED)
+    l_ps_output.m_velocity = get_motion_vector_without_jitter(float2(l_camera.m_resolution_x, l_camera.m_resolution_y), p_input.m_proj_pos_curr, p_input.m_proj_pos_prev, l_camera.m_jitter, l_camera.m_jitter_prev);
+#endif
+
+    return l_ps_output;
 }

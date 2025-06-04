@@ -1,11 +1,11 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
 #include "cml_error.hlsl"
 
 // uint m_tensor_count;    // 4
-// uint m_tensor_offset_0; // Input 
+// uint m_tensor_offset_0; // Input
 // uint m_tensor_offset_1; // lower bound
 // uint m_tensor_offset_2; // upper bound
 // uint m_tensor_offset_3; // Output

@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "../shared_shaders/mb_shared_common.hlsl"
@@ -52,17 +52,8 @@ static const float2 s_poisson_samples[s_sample_num] =
     float2(0.0f, 0.0f),
 };
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 // CBV
 ConstantBuffer<cb_push_raytracing_denoising_t> g_push_constants  : register(REGISTER_PUSH_CONSTANTS);
-
-
-//-----------------------------------------------------------------------------
-// Utility
-//-----------------------------------------------------------------------------
 
 float gaussian_weight(float p_x, float p_y, float p_sigma)
 {
@@ -105,10 +96,6 @@ void accumulate_sample( Texture2D<float4> p_accumulation_buffer_src,
     p_avg_radiance += l_radiance_depth.xyz * l_sample_weight;
     p_total_weight += l_sample_weight;
 }
-
-//-----------------------------------------------------------------------------
-// CS
-//-----------------------------------------------------------------------------
 
 [numthreads(RAYTRACING_DENOISING_THREAD_GROUP_SIZE, RAYTRACING_DENOISING_THREAD_GROUP_SIZE, 1)]
 void cs_main(uint2 p_dispatch_thread_id : SV_DispatchThreadID)

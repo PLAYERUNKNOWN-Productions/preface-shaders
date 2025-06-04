@@ -1,11 +1,13 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #ifndef MBSHADER_ATMOSPHERIC_SCATTERING_UTILS
 #define MBSHADER_ATMOSPHERIC_SCATTERING_UTILS
 
 #define FULLY_REALTIME (0)
 
-//-----------------------------------------------------------------------------
+static const float FROM_FLOAT16_SCALE = 65536.0f;
+static const float TO_FLOAT16_SCALE = 1 / FROM_FLOAT16_SCALE;
+
 // Return the scale of the ray direction (near, far)
 float2 ray_sphere_intersect(float3 p_ray_origin, float3 p_ray_dir,
                             float3 p_sphere_center, float p_sphere_radius)
@@ -26,9 +28,9 @@ float2 ray_sphere_intersect(float3 p_ray_origin, float3 p_ray_dir,
     }
 }
 
-//-----------------------------------------------------------------------------
 // Density ratio
 // [Nishita 1993, Display of The Earth Taking into Account Atmospheric Scattering] : Equation 2
+//  Reference: http://nishitalab.org/user/nis/cdrom/sig93_nis.pdf
 float2 get_density_ratio(float3 p_position, float3 p_planet_center, float p_planet_radius, float2 p_density_scale_height)
 {
     float l_altitude = length(p_position - p_planet_center) - p_planet_radius;
@@ -39,7 +41,6 @@ float2 get_density_ratio(float3 p_position, float3 p_planet_center, float p_plan
     return exp(-l_altitude.xx / p_density_scale_height);
 }
 
-//-----------------------------------------------------------------------------
 // Get optical depth along the light direction
 float2 get_optical_depth_along_light_direction(float3 p_ray_start, float3 p_ray_dir, float3 p_planet_center, float p_planet_radius,
                                                float p_atmosphere_height, float2 p_density_scale_height, uint p_sample_count)
@@ -74,19 +75,19 @@ float2 get_optical_depth_along_light_direction(float3 p_ray_start, float3 p_ray_
     return l_optical_depth;
 }
 
-//-----------------------------------------------------------------------------
 // Phase function for Rayleigh scattering
 // [Nishita 1993, Display of The Earth Taking into Account Atmospheric Scattering] : Equation 5
+//  Reference: http://nishitalab.org/user/nis/cdrom/sig93_nis.pdf
 // We divided by an extra 4 pi since we want to use the scattering coefficient in the final scattering equation
 float phase_function_rayleigh(float p_cos_theta)
 {
-    return (3.0f / (16.0f * M_PI)) * (1 + p_cos_theta * p_cos_theta);
+    return (3.0f / (4.0f * (4.0f * M_PI))) * (1 + p_cos_theta * p_cos_theta);
 }
 
-//-----------------------------------------------------------------------------
 // Phase function for Mie scattering
 // Cornette-Shanks phase function
 // [Nishita 1993, Display of The Earth Taking into Account Atmospheric Scattering] : Equation 5
+//  Reference: http://nishitalab.org/user/nis/cdrom/sig93_nis.pdf
 // We divided by an extra 4 pi since we want to use the scattering coefficient in the final scattering equation
 float phase_function_mie(float p_cos_theta, float p_mie_g)
 {
@@ -96,8 +97,8 @@ float phase_function_mie(float p_cos_theta, float p_mie_g)
            * pow(1.0f + l_mie_g2 - 2.0f * p_mie_g * p_cos_theta, -3.0f / 2.0f) / (2.0f + l_mie_g2);
 }
 
-//-----------------------------------------------------------------------------
 // [Nishita 1993, Display of The Earth Taking into Account Atmospheric Scattering] : Equation 8
+//  Reference: http://nishitalab.org/user/nis/cdrom/sig93_nis.pdf
 // Scattering coefficient and phase function are excluded here
 void compute_inscattering_at_point(float2 p_density_ratio_at_point, float2 p_optical_depth_camera_to_point, float2 p_optical_depth_point_to_sun,
                                    float3 p_extinction_rayleigh, float3 p_extinction_mie,
@@ -114,7 +115,6 @@ void compute_inscattering_at_point(float2 p_density_ratio_at_point, float2 p_opt
     p_inscattering_mie = p_density_ratio_at_point.y * l_extinction;
 }
 
-//-----------------------------------------------------------------------------
 // Sun disk function
 float get_sun_disc_mask(float3 p_light_dir, float3 p_ray_dir)
 {
@@ -125,7 +125,6 @@ float get_sun_disc_mask(float3 p_light_dir, float3 p_ray_dir)
     return l_sun_disk;
 }
 
-//-----------------------------------------------------------------------------
 void compute_inscattering_along_ray(float3 p_ray_start,
                                     float3 p_ray_dir,
                                     float p_ray_length,
@@ -137,10 +136,10 @@ void compute_inscattering_along_ray(float3 p_ray_start,
     float2 l_intersections = ray_sphere_intersect(p_ray_start, p_ray_dir, p_push_constants.m_planet_center, p_push_constants.m_planet_radius + p_push_constants.m_atmosphere_height);
 
     // Get starting point and end point of the ray
-    float p_ray_start_scale = max(l_intersections.x, 0.0f);
+    float l_ray_start_scale = max(l_intersections.x, 0.0f);
     float l_ray_end_scale = min(l_intersections.y, p_ray_length);
 
-    if (p_ray_start_scale >= p_ray_length ||    // Ray occluded
+    if (l_ray_start_scale >= p_ray_length ||    // Ray occluded
         l_ray_end_scale < 0)                    // No intersection with the atmosphere
     {
         p_light_inscattering = 0.0f;
@@ -149,13 +148,13 @@ void compute_inscattering_along_ray(float3 p_ray_start,
     }
 
     // Update the starting position of the ray
-    p_ray_start = p_ray_start + p_ray_dir * p_ray_start_scale;
+    p_ray_start = p_ray_start + p_ray_dir * l_ray_start_scale;
 
     // Integrate in-scattering
     float2 l_optical_depth_camera_to_point = 0;
     float3 l_integrated_inscattering_rayleigh = 0;
     float3 l_integrated_inscattering_mie = 0;
-    float l_step_size = (l_ray_end_scale - p_ray_start_scale) / p_push_constants.m_sample_count_view_direction;
+    float l_step_size = (l_ray_end_scale - l_ray_start_scale) / p_push_constants.m_sample_count_view_direction;
     for (uint l_i = 1; l_i <= p_push_constants.m_sample_count_view_direction; l_i++)
     {
         float3 l_position = p_ray_start + l_i * l_step_size * p_ray_dir;
@@ -178,6 +177,7 @@ void compute_inscattering_along_ray(float3 p_ray_start,
         float2 l_lut_uv = float2(l_altitude / p_push_constants.m_atmosphere_height, (l_cos_zenith + 1.0f) * 0.5f);
 
         float4 l_lut_val = bindless_tex2d_sample_level(p_push_constants.m_lut_texture_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP], l_lut_uv);
+        l_lut_val.zw *= FROM_FLOAT16_SCALE;
 
         // Get density ratio
         float2 l_density_ratio = l_lut_val.xy;
@@ -193,8 +193,8 @@ void compute_inscattering_along_ray(float3 p_ray_start,
         float3 l_inscattering_rayleigh = 0;
         float3 l_inscattering_mie = 0;
         compute_inscattering_at_point(l_density_ratio, l_optical_depth_camera_to_point, l_optical_depth_point_to_sun,
-                                        p_push_constants.m_rayleigh_scattering_coefficient, p_push_constants.m_mie_scattering_coefficient,
-                                        l_inscattering_rayleigh, l_inscattering_mie);
+                                      p_push_constants.m_rayleigh_scattering_coefficient, p_push_constants.m_mie_scattering_coefficient,
+                                      l_inscattering_rayleigh, l_inscattering_mie);
 
         // Integrate the in-scattering
         l_integrated_inscattering_rayleigh += l_inscattering_rayleigh * l_step_size;

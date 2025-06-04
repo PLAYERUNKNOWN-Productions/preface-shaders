@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #ifndef MB_SHADER_LIGHTING_HLSL
 #define MB_SHADER_LIGHTING_HLSL
@@ -15,11 +15,6 @@
 // Specifies minimal reflectance for dielectrics (when metalness is zero)
 #define MIN_DIELECTRICS_F0 0.04f
 
-//-----------------------------------------------------------------------------
-// Sampling
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 uint reverse_bits_32(uint p_bits)
 {
     p_bits = (p_bits << 16) | (p_bits >> 16);
@@ -31,14 +26,12 @@ uint reverse_bits_32(uint p_bits)
     return p_bits;
 }
 
-//-----------------------------------------------------------------------------
 // Hammersley without random number
 float2 hammersley(uint p_index, uint p_num_samples)
 {
     return float2(float(p_index) / float(p_num_samples), reverse_bits_32(p_index) * 2.3283064365386963e-10);
 }
 
-//-----------------------------------------------------------------------------
 // Hammersley with random number
 float2 hammersley(uint p_index, uint p_num_samples, uint2 p_random)
 {
@@ -47,11 +40,6 @@ float2 hammersley(uint p_index, uint p_num_samples, uint2 p_random)
     return float2(l_eta1, l_eta2);
 }
 
-//-----------------------------------------------------------------------------
-// Importance sampling
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 // Potential improvements:
 // This paper claim the Frisvad method produces inaccuracies when tangent is close to (0, 0, -1).
 // Try usingn their method instead
@@ -65,7 +53,6 @@ float3x3 build_tbn(float3 p_tangent_z)
     return float3x3(l_tangent_x, l_tangent_y, p_tangent_z);
 }
 
-//-----------------------------------------------------------------------------
 // [Lagarde et al. 2014, "Moving Frostbite to PBR"] : Listing 18
 float3 importance_sample_cos(float2 p_u, float3x3 p_tangent_basis)
 {
@@ -83,7 +70,6 @@ float3 importance_sample_cos(float2 p_u, float3x3 p_tangent_basis)
     return l_l;
 }
 
-//-----------------------------------------------------------------------------
 // [Karis 2013, "Real Shading in Unreal Engine 4"]
 float3 importance_sample_ggx(float2 p_u, float p_alpha, float3x3 p_tangent_basis)
 {
@@ -101,23 +87,16 @@ float3 importance_sample_ggx(float2 p_u, float p_alpha, float3x3 p_tangent_basis
     return l_h;
 }
 
-//-----------------------------------------------------------------------------
-// BRDFs
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 float3 base_color_to_diffuse_reflectance(float3 p_base_color, float p_metalness)
 {
     return p_base_color * (1.0f - p_metalness);
 }
 
-//-----------------------------------------------------------------------------
 float3 base_color_to_specular_f0(float3 p_base_color, float p_metalness)
 {
     return lerp(MIN_DIELECTRICS_F0, p_base_color, p_metalness);
 }
 
-//-----------------------------------------------------------------------------
 // Trowbridge-Reitz GGX
 // [Walter et al. 2007, "Microfacet models for refraction through rough surfaces"]
 // [Karis 2013, "Real Shading in Unreal Engine 4"]
@@ -131,7 +110,6 @@ float distribution_ggx(float p_noh, float p_a)
     return l_a2 * M_INV_PI / l_denominator;
 }
 
-//-----------------------------------------------------------------------------
 // Fresnel-Schlick approximation
 // [An Inexpensive BDRF Model for Physically based Rendering]
 float3 fresnel_reflectance_schlick(float3 p_f0, float p_f90, float p_u)
@@ -139,7 +117,6 @@ float3 fresnel_reflectance_schlick(float3 p_f0, float p_f90, float p_u)
     return p_f0 + (p_f90 - p_f0) * pow(1.0f - p_u, 5.0f);
 }
 
-//-----------------------------------------------------------------------------
 // Fresnel-Schlick approximation
 // [An Inexpensive BDRF Model for Physically based Rendering]
 float3 fresnel_reflectance_schlick(float3 p_f0, float p_voh)
@@ -147,7 +124,6 @@ float3 fresnel_reflectance_schlick(float3 p_f0, float p_voh)
     return fresnel_reflectance_schlick(p_f0, 1.0f, p_voh);
 }
 
-//-----------------------------------------------------------------------------
 // [Heitz 2014, "Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs"]
 // Frostbite & Filament's GGX Smith Joint implementation
 // TODO: check [Hammon 2017, "PBR Diffuse Lighting for GGX+Smith Microsurfaces"]
@@ -159,7 +135,6 @@ float vis_smith_joint(float p_nov, float p_nol, float p_a)
     return 0.5f / (l_vis_smith_v + l_vis_smith_l + 1e-5f);
 }
 
-//-----------------------------------------------------------------------------
 // Disney Diffuse (no 1/PI)
 // [Burley 2012, "Physically-Based Shading at Disney"]
 float disney_diffuse_no_pi(float p_nov, float p_nol, float p_loh, float p_linear_roughness)
@@ -174,7 +149,6 @@ float disney_diffuse_no_pi(float p_nov, float p_nol, float p_loh, float p_linear
     return l_light_scatter * l_view_scatter;
 }
 
-//-----------------------------------------------------------------------------
 // Renormalized Disney Diffuse (no 1/PI)
 // [Lagarde et al. 2014, "Moving Frostbite to PBR"] : Listing 1
 float renormalized_disney_diffuse_no_pi(float p_nov, float p_nol, float p_loh, float p_linear_roughness)
@@ -192,7 +166,6 @@ float renormalized_disney_diffuse_no_pi(float p_nov, float p_nol, float p_loh, f
     return l_light_scatter * l_view_scatter * l_energy_factor;
 }
 
-//-----------------------------------------------------------------------------
 // [Lagarde et al. 2014, "Moving Frostbite to PBR"] : Listing 23
 float3 get_diffuse_dominant_dir(float3 p_n, float3 p_v, float p_alpha)
 {
@@ -204,7 +177,6 @@ float3 get_diffuse_dominant_dir(float3 p_n, float3 p_v, float p_alpha)
     return normalize(lerp(p_n, p_v, l_lerp_factor));
 }
 
-//-----------------------------------------------------------------------------
 // [Lagarde et al. 2014, "Moving Frostbite to PBR"] : Listing 22
 float3 get_specular_dominant_dir(float3 p_n, float3 p_r, float p_alpha)
 {
@@ -215,14 +187,12 @@ float3 get_specular_dominant_dir(float3 p_n, float3 p_r, float p_alpha)
     return lerp(p_n, p_r, l_lerp_factor);
 }
 
-//-----------------------------------------------------------------------------
 // [Lagarde et al. 2014, "Moving Frostbite to PBR"] : Listing 26
 float compute_specular_occlusion(float p_nov, float p_ao, float p_alpha)
 {
     return saturate(pow(p_nov + p_ao, exp2(-16.0f * p_alpha - 1.0f)) - 1.0f + p_ao);
 }
 
-//-----------------------------------------------------------------------------
 // Clamp roughness and remap linear roughness to alpha
 float clamp_and_remap_roughness(float p_linear_roughness)
 {
@@ -235,7 +205,6 @@ float clamp_and_remap_roughness(float p_linear_roughness)
     return l_alpha;
 }
 
-//-----------------------------------------------------------------------------
 float3 ggx_direct_lighting(float3 p_normal, float3 p_view_dir, float3 p_light_dir,
                            float3 p_diffuse_reflectance, float3 p_specular_f0, float p_roughness)
 {
@@ -267,11 +236,6 @@ float3 ggx_direct_lighting(float3 p_normal, float3 p_view_dir, float3 p_light_di
     return (l_diffuse_lighting + l_specular_lighting) * l_nol;
 }
 
-//-----------------------------------------------------------------------------
-// Structures
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 struct omni_light_t
 {
     float3 m_color;
@@ -279,7 +243,6 @@ struct omni_light_t
     float  m_range;             // m_param_0.w
 };
 
-//-----------------------------------------------------------------------------
 struct spot_light_t
 {
     float3 m_color;
@@ -287,21 +250,15 @@ struct spot_light_t
     float  m_range;             // m_param_0.w
     float3 m_direction;         // m_param_1.xyz
     float  m_angle_scale;       // m_param_1.w       angle_scale = 1.0f / max(1e-5f, (cos_inner - cos_outer))
-    float  m_angle_offset;      // m_param_2.x       angle_offset = -cos_outer * angle_scale; 
+    float  m_angle_offset;      // m_param_2.x       angle_offset = -cos_outer * angle_scale;
 };
 
-//-----------------------------------------------------------------------------
 struct directional_light_t
 {
     float3 m_color;
     float3 m_direction;         // m_param_0.xyz
 };
 
-//-----------------------------------------------------------------------------
-// Structure related functions
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 omni_light_t get_omni_light_param(cb_light_t p_light)
 {
     omni_light_t l_omni_light;
@@ -311,7 +268,6 @@ omni_light_t get_omni_light_param(cb_light_t p_light)
     return l_omni_light;
 }
 
-//-----------------------------------------------------------------------------
 spot_light_t get_spot_light_param(cb_light_t p_light)
 {
     spot_light_t l_spot_light;
@@ -324,7 +280,6 @@ spot_light_t get_spot_light_param(cb_light_t p_light)
     return l_spot_light;
 }
 
-//-----------------------------------------------------------------------------
 directional_light_t get_directional_light_param(cb_light_t p_light)
 {
     directional_light_t l_directional_light;
@@ -333,11 +288,6 @@ directional_light_t get_directional_light_param(cb_light_t p_light)
     return l_directional_light;
 }
 
-//-----------------------------------------------------------------------------
-// Functions
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 // [Lagarde et al. 2014, "Moving Frostbite to PBR"] : Listing 4
 float smooth_distance_attenuation(float p_squared_distance, float p_inv_sqr_atten_radius)
 {
@@ -346,7 +296,6 @@ float smooth_distance_attenuation(float p_squared_distance, float p_inv_sqr_atte
     return l_smooth_factor * l_smooth_factor;
 }
 
-//-----------------------------------------------------------------------------
 // [Lagarde et al. 2014, "Moving Frostbite to PBR"] : Listing 4 + UE hack
 float get_distance_attenuation(float3 p_unnormalized_light_dir, float p_inv_sqr_atten_radius)
 {
@@ -356,7 +305,6 @@ float get_distance_attenuation(float3 p_unnormalized_light_dir, float p_inv_sqr_
     return l_attenuation;
 }
 
-//-----------------------------------------------------------------------------
 // [Lagarde et al. 2014, "Moving Frostbite to PBR"] : Listing 4
 float get_angle_attenuation(float3 p_to_light, float3 p_light_dir, float p_light_angle_scale, float p_light_angle_offset)
 {
@@ -373,7 +321,6 @@ float get_angle_attenuation(float3 p_to_light, float3 p_light_dir, float p_light
     return l_attenuation;
 }
 
-//-----------------------------------------------------------------------------
 float omni_light_atten(float3 p_position_world, float3 p_light_pos, float p_light_range)
 {
     // Distance attenuation
@@ -384,7 +331,6 @@ float omni_light_atten(float3 p_position_world, float3 p_light_pos, float p_ligh
     return l_atten;
 }
 
-//-----------------------------------------------------------------------------
 float spot_light_atten(float3 p_position_world, float3 p_light_pos, float p_light_range, float3 p_spot_dir,
                        float p_light_angle_scale, float p_light_angle_offset)
 {
@@ -402,23 +348,16 @@ float spot_light_atten(float3 p_position_world, float3 p_light_pos, float p_ligh
     return l_atten;
 }
 
-//-----------------------------------------------------------------------------
-// Integration
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 float linear_roughness_to_mipmap_level(float p_linear_roughness, float p_mip_count)
 {
     return p_linear_roughness * p_mip_count;
 }
 
-//-----------------------------------------------------------------------------
 float mipmap_level_to_linear_roughness(float p_mipmap_level, float p_mip_count)
 {
     return p_mipmap_level / p_mip_count;
 }
 
-//-----------------------------------------------------------------------------
 // From Unity
 uint get_ibl_runtime_filter_sample_count(uint p_mip_level)
 {
@@ -437,8 +376,7 @@ uint get_ibl_runtime_filter_sample_count(uint p_mip_level)
     return l_sample_count;
 }
 
-//-----------------------------------------------------------------------------
-// [Lagarde et al. 2014, "Moving Frostbite to PBR"] : Listing 18 
+// [Lagarde et al. 2014, "Moving Frostbite to PBR"] : Listing 18
 float4 integrate_dfg(float3 p_n, float3 p_v, float p_linear_roughness, uint p_sample_count)
 {
     // Clamp roughness to avoid PBR precision problems
@@ -504,7 +442,6 @@ float4 integrate_dfg(float3 p_n, float3 p_v, float p_linear_roughness, uint p_sa
     return l_acc / p_sample_count;
 }
 
-//-----------------------------------------------------------------------------
 // [Lagarde et al. 2014, "Moving Frostbite to PBR"] : Listing 19
 float4 integrate_specular_ld(uint p_cubemap_index, float3 p_n, float3 p_v, float p_alpha, float p_inv_omega_p, uint p_sample_count)
 {
@@ -564,7 +501,6 @@ float4 integrate_specular_ld(uint p_cubemap_index, float3 p_n, float3 p_v, float
     return float4(l_acc * (1.0f / l_acc_weight), 1.0f);
 }
 
-//-----------------------------------------------------------------------------
 // [Lagarde et al. 2014, "Moving Frostbite to PBR"] : Listing 20
 float4 integrate_diffuse_ld(uint p_cubemap_index, float3 p_n, uint p_sample_count, uint p_mip_level)
 {
@@ -588,11 +524,6 @@ float4 integrate_diffuse_ld(uint p_cubemap_index, float3 p_n, uint p_sample_coun
     return float4(l_acc / p_sample_count, 1.0f);
 }
 
-//-----------------------------------------------------------------------------
-// PCF, optimized version
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 // Helper function for optimized PCF
 float sample_shadow_map(float2 p_base_uv, float p_u, float p_v, float2 p_inv_shadow_map_size, float p_depth, uint p_shadow_texture_srv)
 {
@@ -601,7 +532,6 @@ float sample_shadow_map(float2 p_base_uv, float p_u, float p_v, float2 p_inv_sha
     return l_shadow_texture.SampleCmpLevelZero((SamplerComparisonState)SamplerDescriptorHeap[SAMPLER_COMPARISON_LINEAR_GREATER], l_uv, p_depth);
 }
 
-//-----------------------------------------------------------------------------
 // optimized PCF
 // Theory: http://the-witness.net/news/2013/09/shadow-mapping-summary-part-1/
 // Original implementation: https://github.com/TheRealMJP/Shadows/blob/master/Shadows/Mesh.hlsl, under MIT license
@@ -655,7 +585,6 @@ float pcf_optimized(float2 p_base_uv, float p_depth, float p_depth_bias, float2 
     return l_sum * 1.0f / 144;
 }
 
-//-----------------------------------------------------------------------------
 // Helper function for optimized PCF GSM version
 float sample_shadow_map_gsm(float2 p_base_uv, float p_u, float p_v, float2 p_inv_shadow_map_size, Texture2D<float> p_shadow_texture)
 {
@@ -711,10 +640,6 @@ float pcf_optimized_gsm(float2 p_base_uv, float2 p_shadow_map_size, float2 p_inv
     return l_sum * 1.0f / 144;
 }
 
-//-----------------------------------------------------------------------------
-// PCF with box filter
-//-----------------------------------------------------------------------------
-
 #ifndef PCF_NUM
 #define PCF_NUM 9
 #endif
@@ -746,7 +671,6 @@ static const float2 g_pcf_offset[PCF_NUM] =
 
 #endif
 
-//-----------------------------------------------------------------------------
 float pcf_box_filter(float2 p_base_uv, float p_depth, float p_depth_bias, float2 p_inv_shadow_map_size, uint p_shadow_texture_srv)
 {
     float l_light_depth = p_depth + p_depth_bias; // Assuming reversed z
@@ -763,7 +687,6 @@ float pcf_box_filter(float2 p_base_uv, float p_depth, float p_depth_bias, float2
     return l_sum /= PCF_NUM;
 }
 
-//-----------------------------------------------------------------------------
 float pcf_box_filter_gsm(float2 p_base_uv, float2 p_inv_shadow_map_size, Texture2D<float> p_shadow_texture)
 {
     float l_sum = 0;
@@ -776,10 +699,6 @@ float pcf_box_filter_gsm(float2 p_base_uv, float2 p_inv_shadow_map_size, Texture
 
     return l_sum /= PCF_NUM;
 }
-
-//-----------------------------------------------------------------------------
-// PCF with Poisson Disk Sampling
-//-----------------------------------------------------------------------------
 
 #define PCF_NUM_POISSON 16
 static const float2 g_pcf_offset_possion[PCF_NUM_POISSON] =
@@ -802,7 +721,6 @@ static const float2 g_pcf_offset_possion[PCF_NUM_POISSON] =
     float2( 0.14383161,  -0.14100790),
 };
 
-//-----------------------------------------------------------------------------
 // PCF with Poisson Disk Sampling
 float pcf_poisson(float2 p_base_uv, float p_depth, float p_depth_bias, float p_filter_radius, float2 p_inv_shadow_map_size, uint p_shadow_texture_srv)
 {
@@ -820,7 +738,6 @@ float pcf_poisson(float2 p_base_uv, float p_depth, float p_depth_bias, float p_f
     return l_sum /= PCF_NUM_POISSON;
 }
 
-//-----------------------------------------------------------------------------
 // PCF with Poisson Disk Sampling, adjusted version for gsm
 float pcf_poisson_gsm(float2 p_base_uv, float p_filter_radius, float2 p_inv_shadow_map_size, Texture2D<float> p_shadow_texture)
 {
@@ -835,11 +752,6 @@ float pcf_poisson_gsm(float2 p_base_uv, float p_filter_radius, float2 p_inv_shad
     return l_sum /= PCF_NUM_POISSON;
 }
 
-//-----------------------------------------------------------------------------
-// Lighting
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 // [Lagarde et al. 2014, "Moving Frostbite to PBR"] : Listing 24
 float3 evaluate_ibl_diffuse(float3 p_n, float3 p_v, float p_linear_roughness, uint p_dfg_texture_index, uint p_ld_texture_index)
 {
@@ -858,7 +770,6 @@ float3 evaluate_ibl_diffuse(float3 p_n, float3 p_v, float p_linear_roughness, ui
     return l_diffuse_lighting * l_diff_f;
 }
 
-//-----------------------------------------------------------------------------
 // [Lagarde et al. 2014, "Moving Frostbite to PBR"] : Listing 24
 float3 evaluate_ibl_specular(float3 p_n, float3 p_v, float p_linear_roughness, uint p_dfg_texture_index, uint p_dfg_texture_size,
                              uint p_ld_texture_index, float p_ld_mip_count, float3 p_f0, float p_f90)
@@ -887,11 +798,6 @@ float3 evaluate_ibl_specular(float3 p_n, float3 p_v, float p_linear_roughness, u
     return l_pre_ld * (p_f0 * l_pre_dfg.x + p_f90 * l_pre_dfg.y);
 }
 
-//-----------------------------------------------------------------------------
-// Fake earth shadow BRDF
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 float fake_earth_direct_shadow_brdf(float3 p_planet_normal, float3 p_light_dir)
 {
 #if ENABLE_FAKE_EARTH_SHADOW_TERM
@@ -902,7 +808,6 @@ float fake_earth_direct_shadow_brdf(float3 p_planet_normal, float3 p_light_dir)
 #endif
 }
 
-//-----------------------------------------------------------------------------
 float fake_earth_ibl_shadow_brdf(float3 p_planet_normal, cb_light_list_t p_light_list)
 {
 #if ENABLE_FAKE_EARTH_SHADOW_TERM_IBL
@@ -924,11 +829,6 @@ float fake_earth_ibl_shadow_brdf(float3 p_planet_normal, cb_light_list_t p_light
 #endif
 }
 
-//-----------------------------------------------------------------------------
-// Physically based camera
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 // http://en.wikipedia.org/wiki/Film_speed
 float luminance_to_ev100(float p_luminance)
 {
@@ -936,7 +836,6 @@ float luminance_to_ev100(float p_luminance)
     return log2(p_luminance * 100.0 / l_k);
 }
 
-//-----------------------------------------------------------------------------
 // http://en.wikipedia.org/wiki/Film_speed
 float ev100_to_luminance(float p_ev100)
 {
@@ -949,14 +848,12 @@ float ev100_to_luminance(float p_ev100)
     return l_luminance;
 }
 
-//-----------------------------------------------------------------------------
 float ev100_to_exposure(float p_ev100)
 {
     float l_max_luminance = ev100_to_luminance(p_ev100);
     return 1.0 / l_max_luminance;
 }
 
-//-----------------------------------------------------------------------------
 float compute_luminance_adaptation(float p_previous_luminance, float p_current_luminance, float p_speed_dark_to_light, float p_speed_light_to_dark, float p_delta_time)
 {
     float l_delta = p_current_luminance - p_previous_luminance;
@@ -971,11 +868,6 @@ float compute_luminance_adaptation(float p_previous_luminance, float p_current_l
     return l_adapted_luminance;
 }
 
-//-----------------------------------------------------------------------------
-// Helper functions for convenience
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 // Calculate gsm shadows
 float gsm_shadows(uint p_gsm_srv,
                   float3 p_position_ws_local,
@@ -1007,7 +899,6 @@ float gsm_shadows(uint p_gsm_srv,
     return l_shadow;
 }
 
-//-----------------------------------------------------------------------------
 // Calculate direct shadows
 float direct_shadows(uint p_shadow_caster_count,
                      uint p_shadow_caster_srv,
@@ -1112,7 +1003,6 @@ float direct_shadows(uint p_shadow_caster_count,
     return min(l_csm_shadow, l_gsm_shadow);
 }
 
-//-----------------------------------------------------------------------------
 // Calculate direct lighting
 float3 light_direct(cb_light_list_t p_light_list, float3 p_normal_ws, float3 p_view_dir, float p_roughness,
                     float3 p_diffuse_reflectance, float3 p_specular_f0, float3 p_position_ws_local, float3 p_planet_normal,
@@ -1138,9 +1028,9 @@ float3 light_direct(cb_light_list_t p_light_list, float3 p_normal_ws, float3 p_v
                                             p_position_ws_local,
                                             p_normal_ws, // TODO: p_triangle_normal_ws,
                                             l_directional_light,
-                                            p_global_shadow_map_srv, 
+                                            p_global_shadow_map_srv,
                                             p_gsm_camera_view_local_proj);
-    
+
 #if defined(DEBUG_VISUALIZE_CASCADES)
             if (l_shadow == 2)
             {
@@ -1198,7 +1088,6 @@ float3 light_direct(cb_light_list_t p_light_list, float3 p_normal_ws, float3 p_v
     return l_direct_lighting;
 }
 
-//-----------------------------------------------------------------------------
 float3 ggx_direct_lighting_translucent(float3 p_normal, float3 p_view_dir, float3 p_light_dir,
     float3 p_diffuse_reflectance, float3 p_specular_f0, float p_roughness,
     float p_shadow)
@@ -1235,7 +1124,6 @@ float3 ggx_direct_lighting_translucent(float3 p_normal, float3 p_view_dir, float
     return (l_diffuse_lighting + l_specular_lighting) * l_nol_translucent;
 }
 
-//-----------------------------------------------------------------------------
 float3 light_direct_translucent(cb_light_list_t p_light_list, float3 p_normal_ws, float3 p_view_dir, float p_roughness,
     float3 p_diffuse_reflectance, float3 p_specular_f0, float3 p_position_ws_local, float3 p_planet_normal,
     uint p_shadow_caster_count, uint p_shadow_caster_srv,
@@ -1256,7 +1144,7 @@ float3 light_direct_translucent(cb_light_list_t p_light_list, float3 p_normal_ws
                                             p_position_ws_local,
                                             p_normal_ws, // TODO: p_triangle_normal_ws,
                                             l_directional_light,
-                                            p_global_shadow_map_srv, 
+                                            p_global_shadow_map_srv,
                                             p_gsm_camera_view_local_proj);
 
 #   if defined(DEBUG_VISUALIZE_CASCADES)
@@ -1330,14 +1218,18 @@ float3 light_direct_translucent(cb_light_list_t p_light_list, float3 p_normal_ws
 
 // TEMPORARY // DIRECT LIGHT WITH TRANSLUCENCY APPROXIMATION // END
 
-//-----------------------------------------------------------------------------
 // Calculate IBL
 float3 light_ibl(float3 p_normal_ws, float3 p_view_dir, float p_roughness, float p_ao, float3 p_diffuse_reflectance,
                  float3 p_specular_f0, float p_exposure_value, uint p_dfg_texture_srv, uint p_diffuse_ld_texture_srv,
                  uint p_specular_ld_texture_srv, uint p_dfg_texture_size, uint p_specular_ld_mip_count,
-                 cb_light_list_t p_light_list, float3 p_planet_normal)
+                 cb_light_list_t p_light_list, float3 p_planet_normal, float3x3 p_align_ground_rotation)
 {
     float l_ibl_intensity_multiplier = ev100_to_luminance(p_exposure_value);
+
+    // IBL is baked with identity rotation. Depending where camera position is - probe needs to be rotated.
+    // Instead of rotating the probe we rotate the vectors
+    p_normal_ws = mul(p_normal_ws, p_align_ground_rotation);
+    p_view_dir = mul(p_view_dir, p_align_ground_rotation);
 
     // IBL diffuse
     float3 l_ibl_diffuse = 0;
@@ -1372,11 +1264,6 @@ float3 light_ibl(float3 p_normal_ws, float3 p_view_dir, float p_roughness, float
     return l_ibl;
 }
 
-//-----------------------------------------------------------------------------
-// Derivatives
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 struct barycentric_deriv_t
 {
     float3 m_lambda;
@@ -1384,8 +1271,8 @@ struct barycentric_deriv_t
     float3 m_ddy;
 };
 
-//-----------------------------------------------------------------------------
-barycentric_deriv_t calc_full_bary(float4 p_t0, float4 p_t1, float4 p_t2, float2 p_pixel_ndc, float2 p_win_size)
+// From: http://filmicworlds.com/blog/visibility-buffer-rendering-with-material-graphs/
+barycentric_deriv_t calc_full_bary(float4 p_t0, float4 p_t1, float4 p_t2, float2 p_pixel_ndc, float2 p_win_size, float p_render_scale)
 {
     barycentric_deriv_t l_ret = (barycentric_deriv_t)0;
 
@@ -1409,24 +1296,23 @@ barycentric_deriv_t calc_full_bary(float4 p_t0, float4 p_t1, float4 p_t2, float2
     l_ret.m_lambda.y = l_interp_w * (0.0f       + l_delta_vec.x * l_ret.m_ddx.y + l_delta_vec.y * l_ret.m_ddy.y);
     l_ret.m_lambda.z = l_interp_w * (0.0f       + l_delta_vec.x * l_ret.m_ddx.z + l_delta_vec.y * l_ret.m_ddy.z);
 
-    l_ret.m_ddx *= (2.0f / p_win_size.x);
-    l_ret.m_ddy *= (2.0f / p_win_size.y);
-    l_ddx_sum    *= (2.0f / p_win_size.x);
-    l_ddy_sum    *= (2.0f / p_win_size.y);
+    l_ret.m_ddx *= ((2.0 * p_render_scale) / p_win_size.x);
+    l_ret.m_ddy *= ((2.0 * p_render_scale) / p_win_size.y);
+    l_ddx_sum   *= ((2.0 * p_render_scale) / p_win_size.x);
+    l_ddy_sum   *= ((2.0 * p_render_scale) / p_win_size.y);
 
     l_ret.m_ddy *= -1.0f;
-    l_ddy_sum    *= -1.0f;
+    l_ddy_sum   *= -1.0f;
 
     float l_interpW_ddx = 1.0f / (l_interp_inv_w + l_ddx_sum);
     float l_interpW_ddy = 1.0f / (l_interp_inv_w + l_ddy_sum);
 
     l_ret.m_ddx = l_interpW_ddx * (l_ret.m_lambda * l_interp_inv_w + l_ret.m_ddx) - l_ret.m_lambda;
-    l_ret.m_ddy = l_interpW_ddy * (l_ret.m_lambda * l_interp_inv_w + l_ret.m_ddy) - l_ret.m_lambda;  
+    l_ret.m_ddy = l_interpW_ddy * (l_ret.m_lambda * l_interp_inv_w + l_ret.m_ddy) - l_ret.m_lambda;
 
     return l_ret;
 }
 
-//-----------------------------------------------------------------------------
 float3 interpolate_with_deriv(barycentric_deriv_t p_deriv, float p_v0, float p_v1, float p_v2)
 {
     float3 l_merged_v = float3(p_v0, p_v1, p_v2);
@@ -1437,7 +1323,6 @@ float3 interpolate_with_deriv(barycentric_deriv_t p_deriv, float p_v0, float p_v
     return l_ret;
 }
 
-//-----------------------------------------------------------------------------
 float interpolate(barycentric_deriv_t p_deriv, float p_v0, float p_v1, float p_v2)
 {
     float3 l_merged_v_x = float3(p_v0.x, p_v1.x, p_v2.x);
@@ -1446,7 +1331,6 @@ float interpolate(barycentric_deriv_t p_deriv, float p_v0, float p_v1, float p_v
     return l_ret;
 }
 
-//-----------------------------------------------------------------------------
 float2 interpolate(barycentric_deriv_t p_deriv, float2 p_v0, float2 p_v1, float2 p_v2)
 {
     float3 l_merged_v_x = float3(p_v0.x, p_v1.x, p_v2.x);
@@ -1458,7 +1342,6 @@ float2 interpolate(barycentric_deriv_t p_deriv, float2 p_v0, float2 p_v1, float2
     return l_ret;
 }
 
-//-----------------------------------------------------------------------------
 float3 interpolate(barycentric_deriv_t p_deriv, float3 p_v0, float3 p_v1, float3 p_v2)
 {
     float3 l_merged_v_x = float3(p_v0.x, p_v1.x, p_v2.x);
@@ -1472,7 +1355,6 @@ float3 interpolate(barycentric_deriv_t p_deriv, float3 p_v0, float3 p_v1, float3
     return l_ret;
 }
 
-//-----------------------------------------------------------------------------
 float4 interpolate(barycentric_deriv_t p_deriv, float4 p_v0, float4 p_v1, float4 p_v2)
 {
     float3 l_merged_v_x = float3(p_v0.x, p_v1.x, p_v2.x);
@@ -1489,35 +1371,26 @@ float4 interpolate(barycentric_deriv_t p_deriv, float4 p_v0, float4 p_v1, float4
 }
 
 //todo check if these are faster/better than the interpolate function above
-//-----------------------------------------------------------------------------
 float attribute_at_bary(float p_a0, float p_a1, float p_a2, float3 p_bary)
 {
     return mad(p_a0, p_bary.z, mad(p_a1, p_bary.x, p_a2 * p_bary.y));
 }
 
-//-----------------------------------------------------------------------------
 float2 attribute_at_bary(float2 p_a0, float2 p_a1, float2 p_a2, float3 p_bary)
 {
     return mad(p_a0, p_bary.z, mad(p_a1, p_bary.x, p_a2 * p_bary.y));
 }
 
-//-----------------------------------------------------------------------------
 float3 attribute_at_bary(float3 p_a0, float3 p_a1, float3 p_a2, float3 p_bary)
 {
     return mad(p_a0, p_bary.z, mad(p_a1, p_bary.x, p_a2 * p_bary.y));
 }
 
-//-----------------------------------------------------------------------------
 float4 attribute_at_bary(float4 p_a0, float4 p_a1, float4 p_a2, float3 p_bary)
 {
     return mad(p_a0, p_bary.z, mad(p_a1, p_bary.x, p_a2 * p_bary.y));
 }
 
-//-----------------------------------------------------------------------------
-// Post effects
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 static const float2 g_fullscreen_triangle_texcoords[3] =
 {
     float2(0.0f, 2.0f),
@@ -1525,8 +1398,7 @@ static const float2 g_fullscreen_triangle_texcoords[3] =
     float2(2.0f, 0.0f),
 };
 
-//-----------------------------------------------------------------------------
-static const float2 g_fullscreen_quad_texcoords[6] = 
+static const float2 g_fullscreen_quad_texcoords[6] =
 {
     float2(0.0f, 1.0f),
     float2(0.0f, 0.0f),
@@ -1536,7 +1408,6 @@ static const float2 g_fullscreen_quad_texcoords[6] =
     float2(1.0f, 1.0f)
 };
 
-//-----------------------------------------------------------------------------
 static const float3 g_cube_lookup_vectors[6][6] = // [face_id][vertex_id]
 {
     // Bottom left,        Top left,           Top right,          Bottom left,        Top right,          Bottom right
@@ -1548,31 +1419,26 @@ static const float3 g_cube_lookup_vectors[6][6] = // [face_id][vertex_id]
     {  float3( 1, -1, -1), float3( 1,  1, -1), float3(-1,  1, -1), float3( 1, -1, -1), float3(-1,  1, -1), float3(-1, -1, -1) }, // Face 5
 };
 
-//-----------------------------------------------------------------------------
 float2 get_fullscreen_triangle_texcoord(uint p_vertex_id)
 {
     return g_fullscreen_triangle_texcoords[p_vertex_id];
 }
 
-//-----------------------------------------------------------------------------
 float4 get_fullscreen_triangle_position(uint p_vertex_id)
 {
     return float4(2.0f * g_fullscreen_triangle_texcoords[p_vertex_id].x - 1.0f, 1.0f - 2.0f * g_fullscreen_triangle_texcoords[p_vertex_id].y, 0.0f, 1.0f);
 }
 
-//-----------------------------------------------------------------------------
 float2 get_fullscreen_quad_texcoord(uint p_vertex_id)
 {
     return g_fullscreen_quad_texcoords[p_vertex_id];
 }
 
-//-----------------------------------------------------------------------------
 float4 get_fullscreen_quad_position(uint p_vertex_id)
 {
     return float4(2.0f * g_fullscreen_quad_texcoords[p_vertex_id].x - 1.0f, 1.0f - 2.0f * g_fullscreen_quad_texcoords[p_vertex_id].y, 0.0f, 1.0f);
 }
 
-//-----------------------------------------------------------------------------
 float3 get_cube_lookup_vector(uint p_face_id, uint p_vertex_id)
 {
     return g_cube_lookup_vectors[p_face_id][p_vertex_id];

@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 // Attributes specifically for this operation
 struct conv_d_attribs_s
@@ -102,7 +102,7 @@ void conv_d_func(uint3 p_gid, uint3 p_dtid, uint3 p_gtid, uint p_gi)
                 {
                     int l_ind2 = l_ii2 + l_j2;
                     uint l_aa = (l_ind2 >= 0)*(l_ind2 < l_d_i) * l_cond;
-                    
+
                     l_temp += l_aa * l_input[l_j2] * l_filtersh[l_idx_filter+l_j2];
                 }
             }
@@ -159,4 +159,3 @@ void conv_d_func(uint3 p_gid, uint3 p_dtid, uint3 p_gtid, uint p_gi)
         }
     }
 }
-

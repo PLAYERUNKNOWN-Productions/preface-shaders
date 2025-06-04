@@ -1,18 +1,10 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "../shared_shaders/mb_shared_common.hlsl"
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 // CBV
 ConstantBuffer<cb_push_hiz_pre_pass> g_push_constants    : register(REGISTER_PUSH_CONSTANTS);
-
-//-----------------------------------------------------------------------------
-// CS
-//-----------------------------------------------------------------------------
 
 [numthreads(MB_HI_Z_THREADGROUP_SIZE, 1, 1)]
 void cs_main_patch_cmd_buffer(uint3 p_dispatch_thread_id : SV_DispatchThreadID)

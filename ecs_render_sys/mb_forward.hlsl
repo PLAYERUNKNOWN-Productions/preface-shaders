@@ -1,10 +1,6 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
-
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
 
 // Push constants
 ConstantBuffer<cb_push_gltf_t>                  g_push_constants    : register(REGISTER_PUSH_CONSTANTS);
@@ -14,10 +10,6 @@ ConstantBuffer<cb_push_gltf_t>                  g_push_constants    : register(R
 // Helper functions
 #include "mb_lighting.hlsl"
 #include "../shared_shaders/mb_shared_common.hlsl"
-
-//-----------------------------------------------------------------------------
-// Structures
-//-----------------------------------------------------------------------------
 
 struct ps_output_t
 {
@@ -31,7 +23,6 @@ struct ps_output_t
 #endif
 };
 
-//-----------------------------------------------------------------------------
 ps_input_lighting_t vs_gpu_instancing(  uint p_vertex_id    : SV_VertexID,
                                         uint p_instance_id  : SV_InstanceID)
 {
@@ -65,26 +56,20 @@ ps_input_lighting_t vs_gpu_instancing(  uint p_vertex_id    : SV_VertexID,
         l_wind,
         l_wind_small,
         g_push_constants.m_time,
+        g_push_constants.m_time_prev,
         l_camera,
         p_instance_id);
 
     return l_result;
 }
 
-//-----------------------------------------------------------------------------
-// PS
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 void ps_shadow_pass(ps_input_lighting_t p_input,
                     bool l_front_face : SV_IsFrontFace)
 {
 #if defined(MB_ALPHA_TEST)
     // Fetch alpha mask (stored in the red channel) and apply alpha testing
-    float l_opacity = bindless_tex2d_sample(p_input.m_alpha_mask_texture_srv,
-                                            (SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_WRAP], 
-                                            p_input.m_texcoord0,
-                                            0.0).r;
+    SamplerState l_sampler = (SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_WRAP];
+    float l_opacity = bindless_tex2d_sample_bias(p_input.m_alpha_mask_texture_srv, l_sampler, p_input.m_texcoord0, p_input.m_mip_lod_bias).r;
 
     clip(l_opacity - p_input.m_alpha_cutoff);
 #endif
@@ -94,15 +79,12 @@ void ps_visibility_pass()
 {
 }
 
-
-//-----------------------------------------------------------------------------
 struct ps_impostor_data_t
 {
     float4 m_albedo_alpha : SV_TARGET0;
     float4 m_normal_depth : SV_TARGET1;
 };
 
-//-----------------------------------------------------------------------------
 ps_impostor_data_t ps_impostor_data_pass(ps_input_lighting_t p_input,
                                          bool p_front_face : SV_IsFrontFace)
 {
@@ -118,12 +100,13 @@ ps_impostor_data_t ps_impostor_data_pass(ps_input_lighting_t p_input,
     float2 l_metallic_roughness = (float2)0;
     float4 l_ao_texture = (float4)0;
     get_pbr_parameters(
-        l_pbr_material, 
-        p_input.m_texcoord0, 
-        p_input.m_position_ps, 
-        l_base_color_texture, 
-        l_normal_texture, 
-        l_metallic_roughness, 
+        l_pbr_material,
+        p_input.m_texcoord0,
+        p_input.m_position_ps,
+        l_camera.m_mip_lod_bias,
+        l_base_color_texture,
+        l_normal_texture,
+        l_metallic_roughness,
         l_ao_texture);
 
     float3 l_normal_ws = (float3)0;
@@ -169,8 +152,6 @@ ps_impostor_data_t ps_impostor_data_pass(ps_input_lighting_t p_input,
     return l_output;
 }
 
-
-//-----------------------------------------------------------------------------
 ps_output_t ps_main(ps_input_lighting_t p_input,
                     bool p_front_face : SV_IsFrontFace)
 {
@@ -183,7 +164,7 @@ ps_output_t ps_main(ps_input_lighting_t p_input,
 
 #if defined(DEBUG_LOD) // These are only required for the LOD level debug view
     StructuredBuffer<sb_render_instance_t> l_render_instance_buffer = ResourceDescriptorHeap[g_push_constants.m_render_instance_buffer_srv];
-    sb_render_instance_t l_render_instance = l_render_instance_buffer[p_input.m_instance_id];
+    sb_render_instance_t l_render_instance = l_render_instance_buffer[p_input.m_instance_id + g_push_constants.m_render_instance_buffer_offset];
 
     StructuredBuffer<sb_render_item_t> l_render_items = ResourceDescriptorHeap[g_push_constants.m_render_item_buffer_srv];
     sb_render_item_t l_render_item = l_render_items[l_render_instance.m_render_item_idx];
@@ -194,7 +175,7 @@ ps_output_t ps_main(ps_input_lighting_t p_input,
 
     if(!lighting_pixel_shader(
         p_input,
-        l_camera.m_camera_pos,
+        l_camera,
         g_push_constants.m_shadow_caster_count,
         g_push_constants.m_shadow_caster_srv,
         g_push_constants.m_gsm_srv,
@@ -221,27 +202,13 @@ ps_output_t ps_main(ps_input_lighting_t p_input,
     l_ps_output.m_direct_lighting = l_direct_lighting_result;
     l_ps_output.m_indirect_lighting = l_indirect_lighting_result;
 
-    // Pack lighting
 #if defined(MB_RENDER_VELOCITY_PASS_ENABLED)
-    l_ps_output.m_velocity = p_input.m_velocity_data.xy - p_input.m_velocity_data.zw;
+    l_ps_output.m_velocity = get_motion_vector_without_jitter(float2(l_camera.m_resolution_x, l_camera.m_resolution_y), p_input.m_proj_pos_curr, p_input.m_proj_pos_prev, l_camera.m_jitter, l_camera.m_jitter_prev);
 #endif
+
 #if defined(MB_RENDER_SELECTION_PASS_ENABLED)
     l_ps_output.m_entity_id = pack_entity_id(p_input.m_entity_id);
 #endif
 
     return l_ps_output;
-}
-
-//-----------------------------------------------------------------------------
-void ps_occlusion_pre_pass(ps_input_lighting_t p_input)
-{
-#if defined(MB_ALPHA_TEST)
-    // Fetch alpha mask (stored in the red channel) and apply alpha testing
-    float l_opacity = bindless_tex2d_sample(p_input.m_alpha_mask_texture_srv,
-                                            (SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_WRAP], 
-                                            p_input.m_texcoord0,
-                                            0.0).r;
-
-    clip(l_opacity - p_input.m_alpha_cutoff);
-#endif
 }

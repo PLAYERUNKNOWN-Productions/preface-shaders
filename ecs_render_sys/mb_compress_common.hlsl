@@ -1,34 +1,30 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 
-//-----------------------------------------------------------------------------
 float3 PositivePow(float3 base, float3 power)
 {
     return pow(abs(base), power);
 }
 
-//-----------------------------------------------------------------------------
 // sRGB
 float3 SRGBToLinear(float3 c)
 {
     float3 linearRGBLo = c / 12.92;
     float3 linearRGBHi = PositivePow((c + 0.055) / 1.055, float3(2.4, 2.4, 2.4));
-    float3 linearRGB = (c <= 0.04045) ? linearRGBLo : linearRGBHi;
+    float3 linearRGB = select(c <= 0.04045, linearRGBLo, linearRGBHi);
     return linearRGB;
 }
 
-//-----------------------------------------------------------------------------
 // sRGB
 float3 LinearToSRGB(float3 c)
 {
     float3 sRGBLo = c * 12.92;
     float3 sRGBHi = (PositivePow(c, float3(1.0 / 2.4, 1.0 / 2.4, 1.0 / 2.4)) * 1.055) - 0.055;
-    float3 sRGB = (c <= 0.0031308) ? sRGBLo : sRGBHi;
+    float3 sRGB = select(c <= 0.0031308, sRGBLo, sRGBHi);
     return sRGB;
 }
 
-//-----------------------------------------------------------------------------
 void LoadTexelsRG(Texture2D tex,
                   SamplerState samp,
                   float2 inv_texture_width,
@@ -73,7 +69,6 @@ void LoadTexelsRG(Texture2D tex,
     block_r[15] = r[1] * a[1]; block_g[15] = g[1];
 }
 
-//-----------------------------------------------------------------------------
 void LoadTexelsRGB(Texture2D tex,
                    SamplerState samp,
                    float2 inv_texture_width,
@@ -128,7 +123,6 @@ void LoadTexelsRGB(Texture2D tex,
     }
 }
 
-//-----------------------------------------------------------------------------
 void LoadTexelsRGBA(Texture2D tex,
                     SamplerState samp,
                     uint2 dispatch_thread_id,
@@ -175,7 +169,6 @@ void LoadTexelsRGBA(Texture2D tex,
     }
 }
 
-//-----------------------------------------------------------------------------
 // TODO: research a better endpoint search
 void GetMinMaxRG(float block_r[16],
                  float block_g[16],
@@ -199,7 +192,6 @@ void GetMinMaxRG(float block_r[16],
     }
 }
 
-//-----------------------------------------------------------------------------
 void GetMinMaxRGB(float3 block[16], out float3 min_color, out float3 max_color)
 {
     min_color = block[0];
@@ -212,7 +204,6 @@ void GetMinMaxRGB(float3 block[16], out float3 min_color, out float3 max_color)
     }
 }
 
-//-----------------------------------------------------------------------------
 void GetMinMaxChannel(float block[16], out float min_channel, out float max_channel)
 {
     min_channel = block[0];
@@ -225,7 +216,6 @@ void GetMinMaxChannel(float block[16], out float min_channel, out float max_chan
     }
 }
 
-//-----------------------------------------------------------------------------
 void InsetMinMaxRGB(inout float3 min_color, inout float3 max_color)
 {
     // Since we have four points, (1/16) * (max-min) will give us half the distance between
@@ -237,7 +227,6 @@ void InsetMinMaxRGB(inout float3 min_color, inout float3 max_color)
     min_color = floor((min_color + offset) * 255.0f) / 255.0f;
 }
 
-//-----------------------------------------------------------------------------
 // TODO: try using dot's instead?
 // Compres to 5:6:5 format
 uint ColorTo565(float3 color)
@@ -246,7 +235,6 @@ uint ColorTo565(float3 color)
     return (rgb.r << 11) | (rgb.g << 5) | rgb.b;
 }
 
-//-----------------------------------------------------------------------------
 // Original BCn compression function
 uint GetIndicesRGB(float3 block[16], float3 min_color, float3 max_color)
 {
@@ -256,7 +244,7 @@ uint GetIndicesRGB(float3 block[16], float3 min_color, float3 max_color)
     //  0: max_color
     //  1: (2/3)*max_color + (1/3)*min_color
     //  2: (1/3)*max_color + (2/3)*min_color
-    //  3: min_color  
+    //  3: min_color
     //
     // We essentially just project (block[i] - max_color) onto (min_color - max_color), but we pull out
     //  a few constant terms.
@@ -292,7 +280,7 @@ uint GetIndicesRGB(float3 block[16], float3 min_color, float3 max_color)
         //
         // Splitting it up by bit, the output looks like:
         //  bit1_out = bit0_in XOR bit1_in
-        //  bit0_out = bit1_in 
+        //  bit0_out = bit1_in
         uint bit0_in = index & 1;
         uint bit1_in = index >> 1;
         indices |= ((bit0_in ^ bit1_in) << 1) | bit1_in;
@@ -306,7 +294,6 @@ uint GetIndicesRGB(float3 block[16], float3 min_color, float3 max_color)
     return indices;
 }
 
-//-----------------------------------------------------------------------------
 // Original BCn compression function
 void GetIndicesAlpha(float block[16], float min_alpha, float max_alpha, inout uint2 packed)
 {
@@ -324,7 +311,7 @@ void GetIndicesAlpha(float block[16], float min_alpha, float max_alpha, inout ui
         //  1: (6/7)*max_alpha + (1/7)*min_alpha
         //  ...
         //  6: (1/7)*max_alpha + (6/3)*min_alpha
-        //  7: min_alpha  
+        //  7: min_alpha
         index = round(step_inc * (block[i] - max_alpha));
 
         // Now we need to convert our index into the BC indexing scheme:
@@ -343,7 +330,7 @@ void GetIndicesAlpha(float block[16], float min_alpha, float max_alpha, inout ui
     packed.y |= (index >> 1);
 
     shift = 2;
-    for (i = 6; i < 16; ++i)
+    for (int i = 6; i < 16; ++i)
     {
         index = round((block[i] - max_alpha) * step_inc);
         index += (index > 0) - (7 * (index == 7));

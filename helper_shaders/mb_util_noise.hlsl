@@ -1,72 +1,62 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #ifndef MB_SHADER_NOISE_HLSL
 #define MB_SHADER_NOISE_HLSL
 
-//-----------------------------------------------------------------------------
 // 1 / 289
 #define NOISE_SIMPLEX_1_DIV_289 0.00346020761245674740484429065744
 
-//-----------------------------------------------------------------------------
 float mod289(float p_x)
 {
     return p_x - floor(p_x * NOISE_SIMPLEX_1_DIV_289) * 289.0f;
 }
 
-//-----------------------------------------------------------------------------
 float2 mod289(float2 p_x)
 {
     return p_x - floor(p_x * NOISE_SIMPLEX_1_DIV_289) * 289.0f;
 }
 
-//-----------------------------------------------------------------------------
 float3 mod289(float3 p_x)
 {
     return p_x - floor(p_x * NOISE_SIMPLEX_1_DIV_289) * 289.0f;
 }
 
-//-----------------------------------------------------------------------------
 float4 mod289(float4 p_x)
 {
     return p_x - floor(p_x * NOISE_SIMPLEX_1_DIV_289) * 289.0f;
 }
 
-//-----------------------------------------------------------------------------
-// ( x*34.0 + 1.0 )*x = 
+// ( x*34.0 + 1.0 )*x =
 // x*x*34.0 + x
 float permute(float p_x)
 {
     return mod289(p_x*p_x*34.0 + p_x);
 }
 
-//-----------------------------------------------------------------------------
 float3 permute(float3 p_x)
 {
     return mod289(p_x*p_x*34.0 + p_x);
 }
 
-//-----------------------------------------------------------------------------
 float4 permute(float4 p_x)
 {
     return mod289(p_x*p_x*34.0 + p_x);
 }
 
-//-----------------------------------------------------------------------------
 float4 grad4(float p_j, float4 p_ip)
 {
     const float4 l_ones = float4(1.0, 1.0, 1.0, -1.0);
     float4 l_p, l_s;
     l_p.xyz = floor( frac(p_j * p_ip.xyz) * 7.0) * p_ip.z - 1.0;
     l_p.w = 1.5 - dot( abs(l_p.xyz), l_ones.xyz );
-    
+
     // GLSL: lessThan(x, y) = x < y
     // HLSL: 1 - step(y, x) = x < y
     l_p.xyz -= sign(l_p.xyz) * (l_p.w < 0);
-    
+
     return l_p;
 }
 
-//-----------------------------------------------------------------------------
 float simplex_noise_2d(float2 p_v)
 {
     const float4 l_c = float4(
@@ -97,7 +87,7 @@ float simplex_noise_2d(float2 p_v)
                 l_i.y + float3(0.0, l_i1.y, 1.0 )
         ) + l_i.x + float3(0.0, l_i1.x, 1.0 )
     );
-    
+
     float3 l_m = max(
         0.5 - float3(
             dot(l_x0, l_x0),
@@ -128,8 +118,6 @@ float simplex_noise_2d(float2 p_v)
     return 130.0 * dot(l_m, l_g);
 }
 
-
-//-----------------------------------------------------------------------------
 // Output [-1..1]
 float simplex_noise_3d(float3 p_v)
 {
@@ -227,29 +215,21 @@ float simplex_noise_3d(float3 p_v)
     );
 }
 
-//-----------------------------------------------------------------------------
-// Random number generation
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 float random_1d(float p_seed)
 {
     return frac(sin(p_seed) * 43758.5453);
 }
 
-//-----------------------------------------------------------------------------
 float random_2d(float2 p_seed)
 {
     return frac(sin(dot(p_seed.xy, float2(12.9898f, 78.233f))) * 43758.5453123f);
 }
 
-//-----------------------------------------------------------------------------
 float random_3d(float3 seed)
 {
     return frac(sin(dot(seed, float3(12.9898f, 78.233f, 45.543f))) * 43758.5453123f);
 }
 
-//-----------------------------------------------------------------------------
 float3 hash_3(float2 p_value)
 {
     float3 l_randVals = frac(
@@ -262,7 +242,6 @@ float3 hash_3(float2 p_value)
     return l_randVals;
 }
 
-//-----------------------------------------------------------------------------
 float3 hash_3(float3 p_value)
 {
     float3 l_randVals = frac(
@@ -275,7 +254,6 @@ float3 hash_3(float3 p_value)
     return l_randVals;
 }
 
-//-----------------------------------------------------------------------------
 // https://www.shadertoy.com/view/XlXcW4
 float3 hash_3(uint3 p_value)
 {
@@ -284,11 +262,10 @@ float3 hash_3(uint3 p_value)
     p_value = ((p_value >> 8U) ^ p_value.yzx) * k;
     p_value = ((p_value >> 8U) ^ p_value.yzx) * k;
     p_value = ((p_value >> 8U) ^ p_value.yzx) * k;
-    
+
     return p_value * (1.0 / float(0xffffffffU));
 }
 
-//-----------------------------------------------------------------------------
 float2 hash_2(int2 x)
 {
     const int k = 1103515245;
@@ -296,27 +273,23 @@ float2 hash_2(int2 x)
     x = ((x>>8U)^x.yx)*k;
     x = ((x>>8U)^x.yx)*k;
     x = ((x>>8U)^x.yx)*k;
-    
+
     return float2(x) / float(0xffffffffU);
 }
 
-//-----------------------------------------------------------------------------
 float3 hash_3(int3 x)
 {
     const int k = 1103515245;
 
-    x = ((x>>8U)^x.yzx)*k;
-    x = ((x>>8U)^x.yzx)*k;
-    x = ((x>>8U)^x.yzx)*k;
-    
-    return float3(x) / float(0xffffffffU);
+    x = (( x >> 8U ) ^ x.yzx) * k;
+    x = (( x >> 8U ) ^ x.yzx) * k;
+    x = (( x >> 8U ) ^ x.yzx) * k;
+
+    return x / float(0xffffffffU);
 }
 
-//-----------------------------------------------------------------------------
 // Shader toy: https://www.shadertoy.com/view/4dS3Wd
-//-----------------------------------------------------------------------------
 
-//-----------------------------------------------------------------------------
 float hash(float p_value)
 {
     p_value = frac(p_value * 0.011);
@@ -325,7 +298,6 @@ float hash(float p_value)
     return frac(p_value);
 }
 
-//-----------------------------------------------------------------------------
 float hash(float2 p_value)
 {
     float3 l_p3 = frac(float3(p_value.xyx) * 0.13);
@@ -333,7 +305,6 @@ float hash(float2 p_value)
     return frac((l_p3.x + l_p3.y) * l_p3.z);
 }
 
-//-----------------------------------------------------------------------------
 float fbm_octave(float p_value)
 {
     float l_i = floor(p_value);
@@ -342,7 +313,6 @@ float fbm_octave(float p_value)
     return lerp(hash(l_i), hash(l_i + 1.0), l_u);
 }
 
-//-----------------------------------------------------------------------------
 float fbm_octave(float2 l_seed)
 {
     float2 l_floor = floor(l_seed);
@@ -359,7 +329,6 @@ float fbm_octave(float2 l_seed)
     return lerp(l_a, l_b, l_u.x) + (l_c - l_a) * l_u.y * (1.0 - l_u.x) + (l_d - l_b) * l_u.x * l_u.y;
 }
 
-//-----------------------------------------------------------------------------
 float fbm_octave(float3 l_val)
 {
     float3 l_a = floor(l_val);
@@ -383,7 +352,6 @@ float fbm_octave(float3 l_val)
     return l_o4.y * l_d.y + l_o4.x * (1.0 - l_d.y);
 }
 
-//-----------------------------------------------------------------------------
 float fbm_1d(float p_seed, int p_num_octaves, float p_base_amplitude, float p_amplitude_gain = 0.5f, float p_lacunarity = 2.0f, float p_lacunarity_shift = 100.0f)
 {
     float l_v = 0.0;
@@ -397,7 +365,6 @@ float fbm_1d(float p_seed, int p_num_octaves, float p_base_amplitude, float p_am
     return l_v;
 }
 
-//-----------------------------------------------------------------------------
 float fbm_2d(float2 p_seed, int p_num_octaves, float p_base_amplitude, float p_amplitude_gain = 0.5f, float p_lacunarity = 2.0f, float p_lacunarity_shift = 100.0f)
 {
     float l_v = 0.0;
@@ -414,7 +381,6 @@ float fbm_2d(float2 p_seed, int p_num_octaves, float p_base_amplitude, float p_a
     return l_v;
 }
 
-//-----------------------------------------------------------------------------
 float fbm_3d(float3 p_seed, int p_num_octaves, float p_base_amplitude, float p_amplitude_gain = 0.5f, float p_lacunarity = 2.0f, float p_lacunarity_shift = 100.0f)
 {
     float l_v = 0.0;
@@ -433,48 +399,45 @@ float fbm_3d(float3 p_seed, int p_num_octaves, float p_base_amplitude, float p_a
 // REPEATING NOISES USING FRACTURED CAMERA POSITION //
 //////////////////////////////////////////////////////
 
-//-----------------------------------------------------------------------------
 // 2D // range: 0-1
 float noise_repeat(float2 p_pos, int p_scale)
 {
     int2 l_index = int2(floor(p_pos));
     float2 l_factor = frac(p_pos);
-	
+
 	float2 l_weight = l_factor*l_factor*(3.0-2.0*l_factor);
 
-    return lerp(lerp(dot(hash_2((l_index + int2(0,0)) % p_scale), l_factor - float2(0.0,0.0)), 
+    return lerp(lerp(dot(hash_2((l_index + int2(0,0)) % p_scale), l_factor - float2(0.0,0.0)),
                      dot(hash_2((l_index + int2(1,0)) % p_scale), l_factor - float2(1.0,0.0)), l_weight.x),
-                lerp(dot(hash_2((l_index + int2(0,1)) % p_scale), l_factor - float2(0.0,1.0)), 
+                lerp(dot(hash_2((l_index + int2(0,1)) % p_scale), l_factor - float2(0.0,1.0)),
                      dot(hash_2((l_index + int2(1,1)) % p_scale), l_factor - float2(1.0,1.0)), l_weight.x), l_weight.y) + 0.5;
 }
 
-//-----------------------------------------------------------------------------
 // 3D // range: 0-1
 float noise_repeat(float3 p_pos, int p_scale)
 {
     int3 l_index = int3(floor(p_pos));
     float3 l_factor = frac(p_pos);
-	
+
 	float3 l_weight = l_factor*l_factor*(3.0-2.0*l_factor);
 
-    return lerp(lerp(lerp(dot(hash_3((l_index + int3(0,0,0)) % p_scale), l_factor - float3(0.0,0.0,0.0)), 
+    return lerp(lerp(lerp(dot(hash_3((l_index + int3(0,0,0)) % p_scale), l_factor - float3(0.0,0.0,0.0)),
                           dot(hash_3((l_index + int3(1,0,0)) % p_scale), l_factor - float3(1.0,0.0,0.0)), l_weight.x),
-                     lerp(dot(hash_3((l_index + int3(0,1,0)) % p_scale), l_factor - float3(0.0,1.0,0.0)), 
+                     lerp(dot(hash_3((l_index + int3(0,1,0)) % p_scale), l_factor - float3(0.0,1.0,0.0)),
                           dot(hash_3((l_index + int3(1,1,0)) % p_scale), l_factor - float3(1.0,1.0,0.0)), l_weight.x), l_weight.y),
-                lerp(lerp(dot(hash_3((l_index + int3(0,0,1)) % p_scale), l_factor - float3(0.0,0.0,1.0)), 
+                lerp(lerp(dot(hash_3((l_index + int3(0,0,1)) % p_scale), l_factor - float3(0.0,0.0,1.0)),
                           dot(hash_3((l_index + int3(1,0,1)) % p_scale), l_factor - float3(1.0,0.0,1.0)), l_weight.x),
-                     lerp(dot(hash_3((l_index + int3(0,1,1)) % p_scale), l_factor - float3(0.0,1.0,1.0)), 
+                     lerp(dot(hash_3((l_index + int3(0,1,1)) % p_scale), l_factor - float3(0.0,1.0,1.0)),
                           dot(hash_3((l_index + int3(1,1,1)) % p_scale), l_factor - float3(1.0,1.0,1.0)), l_weight.x), l_weight.y), l_weight.z) + 0.5;
 }
 
-//-----------------------------------------------------------------------------
 // 2D // range: 0-1
 float voronoi_repeat(in float2 uv, in int repeat)
 {
     int2 uv_floor = int2(floor(uv));
     float2 uv_fract = frac(uv);
     float sum = 1000.0;
-    
+
     for(int i = -1; i <= 1; i++)
     {
         for(int j = -1; j <= 1; j++)
@@ -490,8 +453,7 @@ float voronoi_repeat(in float2 uv, in int repeat)
     return sin(acos(saturate(sum * 0.9))); // Multiply by 0.9 because distance can be more than 1 breaking the acos()
 }
 
-//-----------------------------------------------------------------------------
-float fmb_repeat(float2 p_uv, int p_scale, int p_steps)
+float fbm_repeat(float2 p_uv, int p_scale, int p_steps)
 {
     float noise = 0.0;
     for(int i = 0; i < p_steps; i++)
@@ -507,7 +469,6 @@ float fmb_repeat(float2 p_uv, int p_scale, int p_steps)
     return noise / fraction;
 }
 
-//-----------------------------------------------------------------------------
 // 2D //
 float noise_1(float2 p_pos, cb_camera_t p_cam, int p_scale) // 1 meter
 {
@@ -515,21 +476,18 @@ float noise_1(float2 p_pos, cb_camera_t p_cam, int p_scale) // 1 meter
     return noise_repeat(p_pos, p_scale);
 }
 
-//-----------------------------------------------------------------------------
 float noise_100(float2 p_pos, cb_camera_t p_cam, int p_scale) // 100 meter
 {
     p_pos = frac(p_pos / 100.0 + p_cam.m_camera_pos_frac_100.xy) * p_scale;
     return noise_repeat(p_pos, p_scale);
 }
 
-//-----------------------------------------------------------------------------
 float noise_10000(float2 p_pos, cb_camera_t p_cam, int p_scale) // 10000 meter
 {
     p_pos = frac(p_pos / 10000.0 + p_cam.m_camera_pos_frac_10000.xy) * p_scale;
     return noise_repeat(p_pos, p_scale);
 }
 
-//-----------------------------------------------------------------------------
 // 3D //
 float noise_1(float3 p_pos, cb_camera_t p_cam, int p_scale) // 1 meter
 {
@@ -537,19 +495,109 @@ float noise_1(float3 p_pos, cb_camera_t p_cam, int p_scale) // 1 meter
     return noise_repeat(p_pos, p_scale);
 }
 
-//-----------------------------------------------------------------------------
 float noise_100(float3 p_pos, cb_camera_t p_cam, int p_scale) // 100 meter
 {
     p_pos = frac(p_pos / 100.0 + p_cam.m_camera_pos_frac_100) * p_scale;
     return noise_repeat(p_pos, p_scale);
 }
 
-//-----------------------------------------------------------------------------
 float noise_10000(float3 p_pos, cb_camera_t p_cam, int p_scale) // 10000 meter
 {
     p_pos = frac(p_pos / 10000.0 + p_cam.m_camera_pos_frac_10000) * p_scale;
     return noise_repeat(p_pos, p_scale);
 }
 
+float voronoi(float3 pos)
+{
+    float3 tile_index = floor(pos);
+    float3 tile_gradient = frac(pos);
+    float sum = 1000.0;
+
+    for(int i = -1; i <= 1; i++)
+    {
+        for(int j = -1; j <= 1; j++)
+        {
+            for(int k = -1; k <= 1; k++)
+            {
+                float3 index = float3(i,j,k);
+                float3 localPos = tile_gradient - (hash_3(tile_index + index) + index);
+                float dst = dot(localPos, localPos);
+                sum = min(dst, sum);
+            }
+        }
+    }
+    return sqrt(sum);
+}
+
+float voronoi(float2 pos)
+{
+    float2 tile_index = floor(pos);
+    float2 tile_gradient = frac(pos);
+    float sum = 1000.0;
+
+    for(int i = -1; i <= 1; i++)
+    {
+        for(int j = -1; j <= 1; j++)
+        {
+            float2 index = float2(i,j);
+            float2 localPos = tile_gradient - (hash_3(float3(tile_index + index, 0.0)).xy + index);
+            float dst = dot(localPos, localPos);
+            sum = min(dst, sum);
+        }
+    }
+    return sqrt(sum);
+}
+
+float voronoi_fbm(float3 pos, int itt, float p_amplitude_gain = 0.5f, float p_lacunarity = 2.0f)
+{
+    float uv_scale_itt = p_lacunarity;
+    float sum_intensity_itt = p_amplitude_gain;
+
+    float sum = 0.0;
+    float noise_intensity = 1.0;
+
+    for(int i = 0; i < itt; i++)
+    {
+        float noise = voronoi(pos);
+        noise *= noise_intensity;
+
+        sum += noise;
+
+        pos *= uv_scale_itt;
+        noise_intensity *= sum_intensity_itt;
+    }
+
+    // Calculate the maximum possible sum
+    float max_sum = (1.0 - pow(sum_intensity_itt, itt)) / (1.0 - sum_intensity_itt);
+
+    // Normalize to 0-1 range
+    return sum / max_sum;
+}
+
+float voronoi_fbm(float2 pos, int itt, float p_amplitude_gain = 0.5f, float p_lacunarity = 2.0f)
+{
+    float uv_scale_itt = p_lacunarity;
+    float sum_intensity_itt = p_amplitude_gain;
+
+    float sum = 0.0;
+    float noise_intensity = 1.0;
+
+    for(int i = 0; i < itt; i++)
+    {
+        float noise = voronoi(pos);
+        noise *= noise_intensity;
+
+        sum += noise;
+
+        pos *= uv_scale_itt;
+        noise_intensity *= sum_intensity_itt;
+    }
+
+    // Calculate the maximum possible sum
+    float max_sum = (1.0 - pow(sum_intensity_itt, itt)) / (1.0 - sum_intensity_itt);
+
+    // Normalize to 0-1 range
+    return sum / max_sum;
+}
 
 #endif // MB_SHADER_NOISE_HLSL

@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "../helper_shaders/mb_quadtree_common.hlsl"
@@ -10,16 +10,11 @@
 #define MB_ENABLE_GRASS_LOD
 //#define MB_DEBUG_GRASS_LOD
 
-//-----------------------------------------------------------------------------
-// Structures
-//-----------------------------------------------------------------------------
-
 struct grass_payload_t
 {
     uint m_patch_count;
 };
 
-//-----------------------------------------------------------------------------
 struct vertex_out_t
 {
     float4 m_position_cs                    : SV_POSITION;
@@ -34,9 +29,12 @@ struct vertex_out_t
 #if defined(MB_DEBUG_GRASS_LOD)
     float3 m_debug_color                    : COLOR2;
 #endif
+#if defined(MB_RENDER_VELOCITY_PASS_ENABLED)
+    float3 m_proj_pos_curr                  : POSITION2;
+    float3 m_proj_pos_prev                  : POSITION3;
+#endif
 };
 
-//-----------------------------------------------------------------------------
 struct ps_output_t
 {
     float4 m_direct_lighting    : SV_TARGET0;
@@ -49,21 +47,12 @@ struct ps_output_t
 #endif
 };
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 ConstantBuffer<cb_push_grass_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
 // The groupshared payload data to be exported from the amplification shader threadgroup to dispatched mesh shader threadgroups
 groupshared grass_payload_t g_payload;
 
-//-----------------------------------------------------------------------------
-// Helper functions
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
-uint hash(uint x) 
+uint hash(uint x)
 {
     x += (x << 10u);
     x ^= (x >> 6u);
@@ -73,7 +62,6 @@ uint hash(uint x)
     return x;
 }
 
-//-----------------------------------------------------------------------------
 // Generates a [0, 1] float using a hash-based LCG
 float rand(uint seed, uint index)
 {
@@ -88,7 +76,6 @@ float rand(uint seed, uint index)
     return float(seed) / float(0xFFFFFFFFu);
 }
 
-//-----------------------------------------------------------------------------
 // Generates a [0, 1] float using a hash-based LCG
 float rand(uint seed, uint index1, uint index2)
 {
@@ -104,7 +91,6 @@ float rand(uint seed, uint index1, uint index2)
     return float(seed) / float(0xFFFFFFFFu);
 }
 
-//-----------------------------------------------------------------------------
 // https://github.com/klejah/ResponsiveGrassDemo/blob/master/ResponsiveGrassDemo/shader/Grass/GrassUpdateForcesShader.cs#L67
 void make_persistent_length(float3 v0, inout float3 v1, inout float3 v2, float height)
 {
@@ -125,7 +111,6 @@ void make_persistent_length(float3 v0, inout float3 v1, inout float3 v2, float h
     v2 = v1 + v12;
 }
 
-//-----------------------------------------------------------------------------
 // Quadratic Bezier Curve
 // La = (1 - t) * P0 + t * P1
 // Lb = (1 - t) * P1 + t * P2
@@ -137,7 +122,6 @@ float3 bezier(float3 p0, float3 p1, float3 p2, float t)
     return lerp(a, b, t);
 }
 
-//-----------------------------------------------------------------------------
 // Derivative of Quadratic Bezier Curve
 // B(t) = (1 - t)^2 * P0 + 2 * t * (1 - t) * P1 + t^2 * P2
 // B'(t) = -2 * (1 - t) * P0 + 2 * P1 - 4 * t * P1 + 2 * t * P2
@@ -147,7 +131,14 @@ float3 bezier_derivative(float3 p0, float3 p1, float3 p2, float t)
     return 2.0f * (1.0f - t) * (p1 - p0) + 2.0f * t * (p2 - p1);
 }
 
-//-----------------------------------------------------------------------------
+float3 apply_wind(float time, float3 position, uint seed, uint blade_id,  float3 tangent, float3 bitangent, float wind_strength)
+{
+    float sin_wave = sin(position.x * 0.40 - time * 0.0020 + rand(seed, 31 - seed) * 3.0 + rand(seed, 31 - seed, blade_id) * 1.0);
+    float cos_wave = cos(position.y * 0.35 - time * 0.0024 + rand(seed, 32 - seed) * 3.0 + rand(seed, 32 - seed, blade_id) * 1.0);
+
+    return (sin_wave * tangent + cos_wave * bitangent) * g_push_constants.m_wind_scale * wind_strength;
+}
+
 // Calculate IBL without fake earth shadow to get rid of exploding ISA on AMD Radeon RX 6900 XT
 float3 light_ibl_grass(float3 normal_ws,
                        float3 view_dir,
@@ -160,9 +151,17 @@ float3 light_ibl_grass(float3 normal_ws,
                        uint diffuse_ld_texture_srv,
                        uint specular_ld_texture_srv,
                        uint dfg_texture_size,
-                       uint specular_ld_mip_count)
+                       uint specular_ld_mip_count,
+                       float3 planet_normal,
+                       cb_light_list_t light_list,
+                       float3x3 align_ground_rotation)
 {
     float ibl_intensity_multiplier = ev100_to_luminance(exposure_value);
+
+    // IBL is baked with identity rotation. Depending where camera position is - probe needs to be rotated.
+    // Instead of rotating the probe we rotate the vectors
+    normal_ws = mul(normal_ws, align_ground_rotation);
+    view_dir = mul(view_dir, align_ground_rotation);
 
     // IBL diffuse
     float3 ibl_diffuse = evaluate_ibl_diffuse(normal_ws, view_dir, roughness, dfg_texture_srv, diffuse_ld_texture_srv) * diffuse_reflectance;
@@ -177,13 +176,15 @@ float3 light_ibl_grass(float3 normal_ws,
     float alpha = clamp_and_remap_roughness(roughness);
     float spec_ao = compute_specular_occlusion(nov, ao, alpha);
 
+    // Fake Earth shadow BRDF
+    float fake_earth_ibl_shadow = fake_earth_ibl_shadow_brdf(planet_normal, light_list);
+
     // Apply IBL
-    float3 ibl = ibl_diffuse * ao + ibl_specular * spec_ao;
+    float3 ibl = (ibl_diffuse * ao + ibl_specular * spec_ao) * fake_earth_ibl_shadow;
 
     return ibl;
 }
 
-//-----------------------------------------------------------------------------
 void calc_lighting_grass(float3 position_ws_local,
                          float3 normal_ws,
                          float roughness,
@@ -200,8 +201,9 @@ void calc_lighting_grass(float3 position_ws_local,
                          uint specular_ld_texture_srv,
                          uint dfg_texture_size,
                          uint specular_ld_mip_count,
-                         uint global_shadow_map_srv, 
+                         uint global_shadow_map_srv,
                          float4x4 gsm_camera_view_local_proj,
+                         float3x3 p_align_ground_rotation,
                          out float3 direct_lighting,
                          out float3 indirect_lighting)
 {
@@ -219,13 +221,9 @@ void calc_lighting_grass(float3 position_ws_local,
 #if ENABLE_IBL
     indirect_lighting = light_ibl_grass(normal_ws, view_dir, roughness, ao, diffuse_reflectance, specular_f0,
                                         exposure_value, dfg_texture_srv, diffuse_ld_texture_srv, specular_ld_texture_srv,
-                                        dfg_texture_size,specular_ld_mip_count);
+                                        dfg_texture_size, specular_ld_mip_count, planet_normal, light_list, p_align_ground_rotation);
 #endif
 }
-
-//-----------------------------------------------------------------------------
-// Amplification shader
-//-----------------------------------------------------------------------------
 
 [NumThreads(1, 1, 1)]
 void as_main(uint3 dispatch_thread_id : SV_DispatchThreadID)
@@ -248,10 +246,6 @@ void as_main(uint3 dispatch_thread_id : SV_DispatchThreadID)
 
     DispatchMesh(thread_group_count_x, thread_group_count_y, thread_group_count_z, g_payload);
 }
-
-//-----------------------------------------------------------------------------
-// Mesh shader
-//-----------------------------------------------------------------------------
 
 #define MB_MS_GROUP_SIZE 32
 static const uint VERTEX_COUNT = 256;
@@ -345,11 +339,20 @@ void ms_main(uint group_thread_id : SV_GroupThreadID,
 
 #if defined(MB_WIND)
         float3 position = (patch_position_camera_local + blade_offset) + camera.m_camera_pos_frac_100;
-        float sin_wave = sin(position.x * 0.40 - g_push_constants.m_time * 0.0020 + rand(seed, 31 - seed) * 3.0 + rand(seed, 31 - seed, blade_id) * 1.0);
-        float cos_wave = cos(position.y * 0.35 - g_push_constants.m_time * 0.0024 + rand(seed, 32 - seed) * 3.0 + rand(seed, 32 - seed, blade_id) * 1.0);
 
-        v2 += (sin_wave * tangent + cos_wave * bitangent) * g_push_constants.m_wind_scale * wind_strength;
-#endif
+#if defined(MB_RENDER_VELOCITY_PASS_ENABLED)
+        // Duplicate control points and offset by previous frame time, to get object motion vectors
+        float3 v0_prev = v0;
+        float3 v1_prev = v1;
+        float3 v2_prev = v2;
+
+        v2_prev += apply_wind(g_push_constants.m_time_prev, position, seed, blade_id, tangent, bitangent, wind_strength);
+
+        make_persistent_length(v0_prev, v1_prev, v2_prev, curr_blade_height);
+#endif // MB_RENDER_VELOCITY_PASS_ENABLED
+
+        v2 += apply_wind(g_push_constants.m_time, position, seed, blade_id, tangent, bitangent, wind_strength);
+#endif // MB_WIND
 
         // To animate the grass, we move v2 which modifies the length of the Bezier curve.
         // To preserve the length of the curve, we use this function to modify v1 and v2 to retain the length of the curve.
@@ -390,6 +393,20 @@ void ms_main(uint group_thread_id : SV_GroupThreadID,
             case 3: vertex.m_debug_color = float3(0, 1, 0); break;
         }
 #endif
+#if defined(MB_RENDER_VELOCITY_PASS_ENABLED)
+#if defined(MB_WIND)
+        v0_prev += vertex_offset * OFFSET_WEIGHT_0;
+        v1_prev += vertex_offset * OFFSET_WEIGHT_1;
+        v2_prev += vertex_offset * OFFSET_WEIGHT_2;
+        float3 vertex_prev = bezier(v0_prev, v1_prev, v2_prev, t) + patch_position_camera_local;
+#else
+        float3 vertex_prev = vertex.m_position_camera_local;
+#endif
+
+        float4 pos_cs_prev = mul(float4(vertex_prev, 1), camera.m_view_proj_local_prev);
+        vertex.m_proj_pos_curr = vertex.m_position_cs.xyw;
+        vertex.m_proj_pos_prev = pos_cs_prev.xyw;
+#endif
 
         vertices[vertex_id] = vertex;
     }
@@ -417,10 +434,6 @@ void ms_main(uint group_thread_id : SV_GroupThreadID,
         triangles[triangle_id] = offset + triangle_indices;
     }
 }
-
-//-----------------------------------------------------------------------------
-// PS
-//-----------------------------------------------------------------------------
 
 ps_output_t ps_main(vertex_out_t input, bool front_face : SV_IsFrontFace)
 {
@@ -468,7 +481,8 @@ ps_output_t ps_main(vertex_out_t input, bool front_face : SV_IsFrontFace)
                         g_push_constants.m_dfg_texture_size,
                         g_push_constants.m_specular_ld_mip_count,
                         g_push_constants.m_gsm_srv,
-                        g_push_constants.m_gsm_camera_view_local_proj, 
+                        g_push_constants.m_gsm_camera_view_local_proj,
+                        (float3x3)camera.m_align_ground_rotation,
                         direct_lighting,
                         indirect_lighting);
 
@@ -493,7 +507,7 @@ ps_output_t ps_main(vertex_out_t input, bool front_face : SV_IsFrontFace)
 
     // Pack lighting
 #if defined(MB_RENDER_VELOCITY_PASS_ENABLED)
-    ps_output.m_velocity = 0;
+    ps_output.m_velocity = get_motion_vector_without_jitter(float2(camera.m_resolution_x, camera.m_resolution_y), input.m_proj_pos_curr, input.m_proj_pos_prev, camera.m_jitter, camera.m_jitter_prev);
 #endif
 #if defined(MB_RENDER_SELECTION_PASS_ENABLED)
     ps_output.m_entity_id = 0;

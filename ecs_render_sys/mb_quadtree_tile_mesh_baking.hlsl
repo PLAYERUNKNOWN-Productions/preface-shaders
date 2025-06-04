@@ -1,20 +1,11 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "../helper_shaders/mb_quadtree_common.hlsl"
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 // CBV
 ConstantBuffer<cb_push_tile_mesh_baking_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
-// Utility functions
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 float3 get_position(RWStructuredBuffer<float3> p_buffer, uint p_tile_index, uint2 p_vertex_index, float3 p_offset)
 {
     uint l_data_index = p_tile_index * g_push_constants.m_num_vertices + p_vertex_index.y * g_push_constants.m_tile_vertex_resolution + p_vertex_index.x;
@@ -22,9 +13,6 @@ float3 get_position(RWStructuredBuffer<float3> p_buffer, uint p_tile_index, uint
     return l_position;
 }
 
-//-----------------------------------------------------------------------------
-// CS
-//-----------------------------------------------------------------------------
 [numthreads(TILE_MESH_BAKING_THREAD_GROUP_SIZE, TILE_MESH_BAKING_THREAD_GROUP_SIZE, 1)]
 void cs_main(uint p_group_index : SV_GroupIndex, uint3 p_group_id : SV_GroupID)
 {
@@ -36,9 +24,6 @@ void cs_main(uint p_group_index : SV_GroupIndex, uint3 p_group_id : SV_GroupID)
     // Outputs
     RWStructuredBuffer<float3> l_position_buffer = ResourceDescriptorHeap[g_push_constants.m_tile_position_buffer_uav];
     RWStructuredBuffer<float3> l_normal_buffer = ResourceDescriptorHeap[g_push_constants.m_tile_normal_buffer_uav];
-#if defined(HORIZONTAL_DISPLACEMENT)
-    RWStructuredBuffer<float3> l_undisplaced_position_buffer = ResourceDescriptorHeap[g_push_constants.m_tile_undisplaced_position_buffer_uav];
-#endif
 
     // Get per tile "instance" data
     StructuredBuffer<sb_tile_instance_to_bake_t> l_instance_buffer = ResourceDescriptorHeap[g_push_constants.m_tile_instance_buffer_srv];
@@ -64,6 +49,7 @@ void cs_main(uint p_group_index : SV_GroupIndex, uint3 p_group_id : SV_GroupID)
 
     // Add horizontal displacement
 #if defined(HORIZONTAL_DISPLACEMENT)
+    RWStructuredBuffer<float3> l_undisplaced_position_buffer = ResourceDescriptorHeap[g_push_constants.m_tile_undisplaced_position_buffer_uav];
     l_undisplaced_position_buffer[l_data_index] = l_position_ls;
 
     if (l_instance.m_child_index_in_parent == 0xFFFFFFFF)
@@ -217,7 +203,7 @@ void cs_main(uint p_group_index : SV_GroupIndex, uint3 p_group_id : SV_GroupID)
             l_hd_weight = pow(l_hd_weight, l_hd_const_0);
 
             float2 l_fract_uv = frac(l_instance.m_tile_pos_frac_10000.xy + l_tile_position.xy * l_instance.m_tile_pos_frac_10000.zz);
-            float l_hd_noise = fmb_repeat(l_fract_uv, l_hd_const_1, l_hd_const_2);
+            float l_hd_noise = fbm_repeat(l_fract_uv, l_hd_const_1, l_hd_const_2);
 
             // Get displacement size
             float l_hd_height = (l_hd_noise + l_hd_const_3) * l_hd_weight;
@@ -227,20 +213,14 @@ void cs_main(uint p_group_index : SV_GroupIndex, uint3 p_group_id : SV_GroupID)
 
         l_position_ls += l_horizontal_displacement * g_push_constants.m_horizontal_displacement_scale;
     }
-
-    float3 l_normal = sample_terrain_normal(l_instance,
-                                            l_tile_position,
-                                            g_push_constants.m_elevation_tile_resolution,
-                                            g_push_constants.m_elevation_tile_border,
-                                            l_heightmap_array);
-
-#else
-    float3 l_normal = sample_terrain_normal(l_instance,
-                                            l_tile_position,
-                                            g_push_constants.m_elevation_tile_resolution,
-                                            g_push_constants.m_elevation_tile_border,
-                                            l_heightmap_array);
 #endif
+
+    float3 l_normal = sample_terrain_normal(l_instance,
+                                            l_tile_position,
+                                            g_push_constants.m_elevation_tile_resolution,
+                                            g_push_constants.m_elevation_tile_border,
+                                            l_heightmap_array);
+
 
     l_position_buffer[l_data_index] = l_position_ls;
     l_normal_buffer[l_data_index] = l_normal;

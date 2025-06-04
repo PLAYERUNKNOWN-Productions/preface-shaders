@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #ifndef MB_SHADER_HIZ_CULLING_H
 #define MB_SHADER_HIZ_CULLING_H
@@ -46,34 +46,13 @@ float closest(float p_left, float p_right)
     return max(p_left, p_right);
 }
 
-bool hiz_visibility_test(cb_camera_t p_camera, float4 p_bounding_sphere_ms, float3 p_aabb_min_ms, float3 p_aabb_max_ms, float4x3 p_instance_transform, uint p_hiz_map_srv)
+bool hiz_visibility_test(cb_camera_t p_camera, float3 p_aabb_min_ms, float3 p_aabb_max_ms, float4x3 p_instance_transform, uint p_hiz_map_srv)
 {
-    if(all(p_aabb_min_ms == p_aabb_max_ms))
-    {
-        return true;
-    }
-
     float3 l_min_uv = float3(1, 1, 1);
     float3 l_max_uv = float3(0, 0, 0);
 
     static const int l_point_count = 8;
-#ifdef BUILD_AABB_FROM_BOUNDING_SPHERE
-    float3 l_sphere_pos = p_bounding_sphere_ms.xyz;
-    float l_sphere_radius = p_bounding_sphere_ms.w;
 
-    //build AABB
-    float3 l_aabb_local_space[l_point_count] =
-    {
-        l_sphere_pos + float3(-l_sphere_radius,  l_sphere_radius, -l_sphere_radius),   //front top left
-        l_sphere_pos + float3( l_sphere_radius,  l_sphere_radius, -l_sphere_radius),   //front top right
-        l_sphere_pos + float3(-l_sphere_radius, -l_sphere_radius, -l_sphere_radius),   //front bot left
-        l_sphere_pos + float3( l_sphere_radius, -l_sphere_radius, -l_sphere_radius),   //front bot right
-        l_sphere_pos + float3(-l_sphere_radius,  l_sphere_radius,  l_sphere_radius),   //back top left
-        l_sphere_pos + float3( l_sphere_radius,  l_sphere_radius,  l_sphere_radius),   //back top right
-        l_sphere_pos + float3(-l_sphere_radius, -l_sphere_radius,  l_sphere_radius),   //back bot left
-        l_sphere_pos + float3( l_sphere_radius, -l_sphere_radius,  l_sphere_radius),   //back bot right
-    };
-#else
     //build AABB
     float3 l_min = p_aabb_min_ms;
     float3 l_max = p_aabb_max_ms;
@@ -89,7 +68,7 @@ bool hiz_visibility_test(cb_camera_t p_camera, float4 p_bounding_sphere_ms, floa
         float3(l_min.x, l_min.y, l_max.z), //back bot left
         float3(l_max.x, l_min.y, l_max.z), //back bot right
     };
-#endif
+
     float4 l_minimum_depth_view_space = float4(0, 0, 15, 1);  //todo make this 15 tweakable
     float4 l_minimum_depth_projection_space = mul(l_minimum_depth_view_space, p_camera.m_proj);
     float l_minimum_depth_ndc = l_minimum_depth_projection_space.z / l_minimum_depth_projection_space.w;
@@ -116,9 +95,9 @@ bool hiz_visibility_test(cb_camera_t p_camera, float4 p_bounding_sphere_ms, floa
 
     float l_closest_depth = closest(l_min_uv.z, l_max_uv.z);
     if(is_closer(l_closest_depth, l_minimum_depth_ndc))
-    {   
-          return true;         
-    }  
+    {
+          return true;
+    }
 
 #ifdef OCCLUSION_CULL_DEBUG_DRAW
     //bounding box
@@ -189,7 +168,7 @@ bool hiz_visibility_test(cb_camera_t p_camera, float4 p_bounding_sphere_ms, floa
     float l_sample2 = l_hiz_map.Load(l_coords2);
     float l_sample3 = l_hiz_map.Load(l_coords3);
 
-    float l_furthest_sample = furthest(furthest(l_sample0, l_sample1), furthest(l_sample2, l_sample3));    
+    float l_furthest_sample = furthest(furthest(l_sample0, l_sample1), furthest(l_sample2, l_sample3));
 #endif
 
     bool l_visible = is_closer(l_closest_depth, l_furthest_sample);

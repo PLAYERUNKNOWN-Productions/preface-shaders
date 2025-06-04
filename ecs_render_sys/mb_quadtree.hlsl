@@ -1,10 +1,6 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
-
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
 
 // Push constants
 ConstantBuffer<cb_push_gltf_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
@@ -15,11 +11,6 @@ ConstantBuffer<cb_push_gltf_t> g_push_constants : register(REGISTER_PUSH_CONSTAN
 #include "../helper_shaders/mb_util_noise.hlsl"
 #include "../helper_shaders/mb_quadtree_common.hlsl"
 
-//-----------------------------------------------------------------------------
-// Structures
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 struct ps_output_t
 {
     float4 m_direct_lighting    : SV_TARGET0;
@@ -32,15 +23,6 @@ struct ps_output_t
 #endif
 };
 
-//-----------------------------------------------------------------------------
-// Utility function
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
-// VS
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 ps_input_lighting_quadtree_t vs_gpu_instancing(     uint p_vertex_id    : SV_VertexID,
                                                     uint p_instance_id  : SV_InstanceID)
 {
@@ -74,11 +56,6 @@ ps_input_lighting_quadtree_t vs_gpu_instancing(     uint p_vertex_id    : SV_Ver
     return l_result;
 }
 
-//-----------------------------------------------------------------------------
-// PS
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 void ps_shadow_pass()
 {
 }
@@ -87,11 +64,6 @@ void ps_visibility_pass()
 {
 }
 
-void ps_occlusion_pre_pass()
-{
-}
-
-//-----------------------------------------------------------------------------
 ps_output_t ps_main(ps_input_lighting_quadtree_t p_input)
 {
     // Get render instance
@@ -110,6 +82,8 @@ ps_output_t ps_main(ps_input_lighting_quadtree_t p_input)
     StructuredBuffer<sb_tile_instance_t> l_tile_instances = ResourceDescriptorHeap[NonUniformResourceIndex(l_quadtree_material.m_tile_instance_buffer_index)];
     sb_tile_instance_t l_tile = l_tile_instances[l_render_instance.m_user_data];
 
+    ConstantBuffer<cb_camera_t> l_camera = ResourceDescriptorHeap[g_push_constants.m_camera_cbv];
+
     float4 l_direct_lighting = (float4)0;
     float4 l_indirect_lighting = (float4)0;
     lighting_pixel_shader_quadtree(
@@ -127,20 +101,22 @@ ps_output_t ps_main(ps_input_lighting_quadtree_t p_input)
         g_push_constants.m_dfg_texture_size,
         g_push_constants.m_specular_ld_mip_count,
         g_push_constants.m_light_list_cbv,
+        (float3x3)l_camera.m_align_ground_rotation,
         l_direct_lighting,
         l_indirect_lighting);
 
-        ps_output_t l_ps_output;
-#if defined(MB_RENDER_VELOCITY_PASS_ENABLED)
-        // Quadtree is static and won't move
-        l_ps_output.m_velocity = 0;
-#endif
-#if defined(MB_RENDER_SELECTION_PASS_ENABLED)
-        l_ps_output.m_entity_id = pack_entity_id(p_input.m_entity_id);
-#endif
+    ps_output_t l_ps_output;
 
     l_ps_output.m_direct_lighting = l_direct_lighting;
     l_ps_output.m_indirect_lighting = l_indirect_lighting;
+
+#if defined(MB_RENDER_VELOCITY_PASS_ENABLED)
+    l_ps_output.m_velocity = get_motion_vector_without_jitter(float2(l_camera.m_resolution_x, l_camera.m_resolution_y), p_input.m_proj_pos_curr, p_input.m_proj_pos_prev, l_camera.m_jitter, l_camera.m_jitter_prev);
+#endif
+
+#if defined(MB_RENDER_SELECTION_PASS_ENABLED)
+    l_ps_output.m_entity_id = pack_entity_id(p_input.m_entity_id);
+#endif
 
     return l_ps_output;
 }

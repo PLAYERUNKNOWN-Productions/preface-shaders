@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -12,9 +12,6 @@
 
 #include "deconv_b_func.hlsl"
 
-//-----------------------------------------------------------------------------
-// Entry point
-//-----------------------------------------------------------------------------
 DEF_THREAD_GROUP_SIZE_AT
 void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
              uint3 p_gtid : SV_GroupThreadID, uint p_gi : SV_GroupIndex)

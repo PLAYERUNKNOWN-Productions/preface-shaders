@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 
@@ -11,7 +11,7 @@
 #endif
 
 #if MB_NUM_CHANNELS == 1
-#   define MB_SWIZZLE x    
+#   define MB_SWIZZLE x
 #elif MB_NUM_CHANNELS == 2
 #   define MB_SWIZZLE xy
 #elif MB_NUM_CHANNELS == 3
@@ -22,19 +22,11 @@
 #   pragma error unexpected number of channels
 #endif
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 ConstantBuffer<cb_push_memset_uav> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
-// CS
-//-----------------------------------------------------------------------------
-
-[numthreads(MB_CLEAR_UAV_THREADGROUP_SIZE_X, MB_CLEAR_UAV_THREADGROUP_SIZE_Y, 1)]
+[numthreads(MB_MEMSET_UAV_THREADGROUP_SIZE_X, MB_MEMSET_UAV_THREADGROUP_SIZE_Y, 1)]
 void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
 {
-    RWTexture2D<CONCAT(MB_TEXTURE_TYPE, MB_NUM_CHANNELS)> l_texture = ResourceDescriptorHeap[g_push_constants.m_texture_uav];
+    RWTexture2D<CONCAT(MB_TEXTURE_TYPE, MB_NUM_CHANNELS)> l_texture = ResourceDescriptorHeap[g_push_constants.m_uav];
     l_texture[p_dispatch_thread_id.xy] = g_push_constants.m_value.MB_SWIZZLE;
 }

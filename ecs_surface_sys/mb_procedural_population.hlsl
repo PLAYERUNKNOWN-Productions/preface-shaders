@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "../helper_shaders/mb_util_noise.hlsl"
@@ -10,16 +10,8 @@
 //#define MB_PATHTRACING_PLACEMENT
 //#define MB_GAMESCOM_PLACEMENT
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 // Push constants
 ConstantBuffer<cb_procedural_population_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
-
-//-----------------------------------------------------------------------------
-// Utility functions
-//-----------------------------------------------------------------------------
 
 void write_population_item(uint2 index, uint id, float3 offset, float scale, float rotation)
 {
@@ -128,10 +120,6 @@ void compensate_max_tile_cull(inout biome_spawn_data biome_struct, uint biome_de
     }
 }
 
-//-----------------------------------------------------------------------------
-// Compute shader
-//-----------------------------------------------------------------------------
-
 [numthreads(PROCEDURAL_POPULATION_THREADGROUP_SIZE, PROCEDURAL_POPULATION_THREADGROUP_SIZE, 1)]
 void cs_main(uint2 p_dispatch_thread_id : SV_DispatchThreadID)
 {
@@ -171,6 +159,8 @@ void cs_main(uint2 p_dispatch_thread_id : SV_DispatchThreadID)
     // The tree coverage mask has a range of 0-100, so remap to 0-1
     float tree_coverage = saturate(mask.g / 100.0);
 
+    float tile_coverage = g_push_constants.m_tile_coverage;
+
     // Terrain data
 #if !defined(ELEVATION_FROM_NOISE)
     int2 elevation_resolution = int2(g_push_constants.m_elevation_resolution_x, g_push_constants.m_elevation_resolution_y);
@@ -198,7 +188,7 @@ void cs_main(uint2 p_dispatch_thread_id : SV_DispatchThreadID)
     }
     // Tropical & Subtropical Coniferous Forests and Temperate Conifer Forests
     else if (biome_id == 3 || biome_id == 5)
-    {        
+    {
         // Determins overall density of a biome
         biome_tile_density = 18;
 
@@ -258,7 +248,7 @@ void cs_main(uint2 p_dispatch_thread_id : SV_DispatchThreadID)
         biome_data.m_scale[7]  = float2(0.7, 1.4).xyxy;
         biome_data.m_scale[11] = float2(0.1, 1.0).xyxy;
         biome_data.m_scale[12] = float2(0.1, 1.0).xyxy;
-        
+
         // The exponent the interpolation value is powered by, this can make large scale more rare
         biome_data.m_scale_blend_exp[3] = float2(3.0, 3.0);
         biome_data.m_scale_blend_exp[6] = float2(3.0, 3.0);
@@ -685,7 +675,7 @@ void cs_main(uint2 p_dispatch_thread_id : SV_DispatchThreadID)
             // get min and max scale
             scale = biome_data.m_scale[i].x + (biome_data.m_scale[i].y - biome_data.m_scale[i].x) * pow(rnd_val_01.x, biome_data.m_scale_blend_exp[i].x);
 
-            // get min and max z offset            
+            // get min and max z offset
             z_offset = biome_data.m_z_offset[i].x + (biome_data.m_z_offset[i].y - biome_data.m_z_offset[i].x) * rnd_val_01.y;
         }
         spawnrate_sum += biome_data.m_spawn_rate[i].x;

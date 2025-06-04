@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -56,9 +56,6 @@ uint get_attribs(in ByteAddressBuffer p_attrib_buffer, in uint p_byte_offset, ou
 groupshared float l_filter[2304];
 groupshared float l_input[512];
 
-//-----------------------------------------------------------------------------
-// Entry point
-//-----------------------------------------------------------------------------
 [numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
 void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
              uint3 p_gtid : SV_GroupThreadID, uint p_gi : SV_GroupIndex)

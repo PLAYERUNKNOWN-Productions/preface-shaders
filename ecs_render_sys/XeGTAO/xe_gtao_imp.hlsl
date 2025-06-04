@@ -1,12 +1,12 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Copyright (C) 2016-2021, Intel Corporation 
-// 
+// Copyright (C) 2016-2021, Intel Corporation
+//
 // SPDX-License-Identifier: MIT
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// XeGTAO is based on GTAO/GTSO "Jimenez et al. / Practical Real-Time Strategies for Accurate Indirect Occlusion", 
+// XeGTAO is based on GTAO/GTSO "Jimenez et al. / Practical Real-Time Strategies for Accurate Indirect Occlusion",
 // https://www.activision.com/cdn/research/Practical_Real_Time_Strategies_for_Accurate_Indirect_Occlusion_NEW%20VERSION_COLOR.pdf
-// 
+//
 // Implementation:  Filip Strugar (filip.strugar@intel.com), Steve Mccalla <stephen.mccalla@intel.com>         (\_/)
 // Version:         (see XeGTAO.h)                                                                            (='.'=)
 // Details:         https://github.com/GameTechDev/XeGTAO                                                     (")_(")
@@ -29,18 +29,18 @@ RWTexture2D<float4>         g_outputDbgImage    : register( u2 );
 
 #if defined(XE_GTAO_FP32_DEPTHS) && XE_GTAO_USE_HALF_FLOAT_PRECISION
 #error Using XE_GTAO_USE_HALF_FLOAT_PRECISION with 32bit depths is not supported yet unfortunately (it is possible to apply fp16 on parts not related to depth but this has not been done yet)
-#endif 
+#endif
 
 
 #if (XE_GTAO_USE_HALF_FLOAT_PRECISION != 0)
 #if 1 // old fp16 approach (<SM6.2)
-    typedef min16float      lpfloat; 
+    typedef min16float      lpfloat;
     typedef min16float2     lpfloat2;
     typedef min16float3     lpfloat3;
     typedef min16float4     lpfloat4;
     typedef min16float3x3   lpfloat3x3;
 #else // new fp16 approach (requires SM6.2 and -enable-16bit-types) - WARNING: perf degradation noticed on some HW, while the old (min16float) path is mostly at least a minor perf gain so this is more useful for quality testing
-    typedef float16_t       lpfloat; 
+    typedef float16_t       lpfloat;
     typedef float16_t2      lpfloat2;
     typedef float16_t3      lpfloat3;
     typedef float16_t4      lpfloat4;
@@ -130,7 +130,7 @@ lpfloat XeGTAO_PackEdges( lpfloat4 edgesLRTB )
     // integer version:
     // edgesLRTB = saturate(edgesLRTB) * 2.9.xxxx + 0.5.xxxx;
     // return (((uint)edgesLRTB.x) << 6) + (((uint)edgesLRTB.y) << 4) + (((uint)edgesLRTB.z) << 2) + (((uint)edgesLRTB.w));
-    // 
+    //
     // optimized, should be same as above
     edgesLRTB = round( saturate( edgesLRTB ) * 2.9 );
     return dot( edgesLRTB, lpfloat4( 64.0 / 255.0, 16.0 / 255.0, 4.0 / 255.0, 1.0 / 255.0 ) ) ;
@@ -170,13 +170,13 @@ lpfloat XeGTAO_FastSqrt( float x )
 }
 // input [-1, 1] and output [0, PI], from https://seblagarde.wordpress.com/2014/12/01/inverse-trigonometric-functions-gpu-optimization-for-amd-gcn-architecture/
 lpfloat XeGTAO_FastACos( lpfloat inX )
-{ 
+{
     const lpfloat PI = 3.141593;
     const lpfloat HALF_PI = 1.570796;
-    lpfloat x = abs(inX); 
-    lpfloat res = -0.156583 * x + HALF_PI; 
-    res *= XeGTAO_FastSqrt(1.0 - x); 
-    return (inX >= 0) ? res : PI - res; 
+    lpfloat x = abs(inX);
+    lpfloat res = -0.156583 * x + HALF_PI;
+    res *= XeGTAO_FastSqrt(1.0 - x);
+    return (inX >= 0) ? res : PI - res;
 }
 
 uint XeGTAO_EncodeVisibilityBentNormal( lpfloat visibility, lpfloat3 bentNormal )
@@ -238,16 +238,16 @@ lpfloat3x3 XeGTAO_RotFromToMatrix( lpfloat3 from, lpfloat3 to )
     return mtx;
 }
 
-void XeGTAO_MainPass( const uint2 pixCoord, lpfloat sliceCount, lpfloat stepsPerSlice, const lpfloat2 localNoise, lpfloat3 viewspaceNormal, const GTAOConstants consts, 
+void XeGTAO_MainPass( const uint2 pixCoord, lpfloat sliceCount, lpfloat stepsPerSlice, const lpfloat2 localNoise, lpfloat3 viewspaceNormal, const GTAOConstants consts,
     Texture2D<lpfloat> sourceViewspaceDepth, SamplerState depthSampler, RWTexture2D<uint> outWorkingAOTerm, RWTexture2D<unorm float> outWorkingEdges )
-{                                                                       
+{
     float2 normalizedScreenPos = (pixCoord + 0.5.xx) * consts.ViewportPixelSize;
 
     lpfloat4 valuesUL   = sourceViewspaceDepth.GatherRed( depthSampler, float2( pixCoord * consts.ViewportPixelSize )               );
     lpfloat4 valuesBR   = sourceViewspaceDepth.GatherRed( depthSampler, float2( pixCoord * consts.ViewportPixelSize ), int2( 1, 1 ) );
 
     // viewspace Z at the center
-    lpfloat viewspaceZ  = valuesUL.y; //sourceViewspaceDepth.SampleLevel( depthSampler, normalizedScreenPos, 0 ).x; 
+    lpfloat viewspaceZ  = valuesUL.y; //sourceViewspaceDepth.SampleLevel( depthSampler, normalizedScreenPos, 0 ).x;
 
     // viewspace Zs left top right bottom
     const lpfloat pixLZ = valuesUL.x;
@@ -281,7 +281,7 @@ void XeGTAO_MainPass( const uint2 pixCoord, lpfloat sliceCount, lpfloat stepsPer
 
     const float3 pixCenterPos   = XeGTAO_ComputeViewspacePosition( normalizedScreenPos, viewspaceZ, consts );
     const lpfloat3 viewVec      = (lpfloat3)normalize(-pixCenterPos);
-    
+
     // prevents normals that are facing away from the view vector - xeGTAO struggles with extreme cases, but in Vanilla it seems rare so it's disabled by default
     // viewspaceNormal = normalize( viewspaceNormal + max( 0, -dot( viewspaceNormal, viewVec ) ) * viewVec );
 
@@ -335,7 +335,7 @@ void XeGTAO_MainPass( const uint2 pixCoord, lpfloat sliceCount, lpfloat stepsPer
 
         lpfloat screenspaceRadius   = effectRadius / (lpfloat)pixelDirRBViewspaceSizeAtCenterZ.x;
 
-        // fade out for small screen radii 
+        // fade out for small screen radii
         visibility += saturate((10 - screenspaceRadius)/100)*0.5;
 
 #if 0   // sensible early-out for even more performance; disabled because not yet tested
@@ -433,7 +433,7 @@ void XeGTAO_MainPass( const uint2 pixCoord, lpfloat sliceCount, lpfloat stepsPer
                 // note: when sampling, using point_point_point or point_point_linear sampler works, but linear_linear_linear will cause unwanted interpolation between neighbouring depth values on the same MIP level!
                 const lpfloat mipLevel    = (lpfloat)clamp( log2( sampleOffsetLength ) - consts.DepthMIPSamplingOffset, 0, XE_GTAO_DEPTH_MIP_LEVELS );
 
-                // Snap to pixel center (more correct direction math, avoids artifacts due to sampling pos not matching depth texel center - messes up slope - but adds other 
+                // Snap to pixel center (more correct direction math, avoids artifacts due to sampling pos not matching depth texel center - messes up slope - but adds other
                 // artifacts due to them being pushed off the slice). Also use full precision for high res cases.
                 sampleOffset = round(sampleOffset) * (lpfloat2)consts.ViewportPixelSize;
 
@@ -598,7 +598,7 @@ lpfloat XeGTAO_DepthMIPFilter( lpfloat depth0, lpfloat depth1, lpfloat depth2, l
     return (weight0 * depth0 + weight1 * depth1 + weight2 * depth2 + weight3 * depth3) / weightSum;
 }
 
-// This is also a good place to do non-linear depth conversion for cases where one wants the 'radius' (effectively the threshold between near-field and far-field GI), 
+// This is also a good place to do non-linear depth conversion for cases where one wants the 'radius' (effectively the threshold between near-field and far-field GI),
 // is required to be non-linear (i.e. very large outdoors environments).
 lpfloat XeGTAO_ClampDepth( float depth )
 {
@@ -699,7 +699,7 @@ typedef lpfloat AOTermType;             // .x is visibility term
 
 void XeGTAO_AddSample( AOTermType ssaoValue, lpfloat edgeValue, inout AOTermType sum, inout lpfloat sumWeight )
 {
-    lpfloat weight = edgeValue;    
+    lpfloat weight = edgeValue;
 
     sum += (weight * ssaoValue);
     sumWeight += weight;
@@ -831,7 +831,7 @@ float3 XeGTAO_ComputeViewspaceNormal( const uint2 pixCoord, const GTAOConstants 
     float4 valuesBR   = sourceNDCDepth.GatherRed( depthSampler, float2( pixCoord * consts.ViewportPixelSize ), int2( 1, 1 ) );
 
     // viewspace Z at the center
-    float viewspaceZ  = XeGTAO_ScreenSpaceToViewSpaceDepth( valuesUL.y, consts ); //sourceViewspaceDepth.SampleLevel( depthSampler, normalizedScreenPos, 0 ).x; 
+    float viewspaceZ  = XeGTAO_ScreenSpaceToViewSpaceDepth( valuesUL.y, consts ); //sourceViewspaceDepth.SampleLevel( depthSampler, normalizedScreenPos, 0 ).x;
 
     // viewspace Zs left top right bottom
     const float pixLZ = XeGTAO_ScreenSpaceToViewSpaceDepth( valuesUL.x, consts );

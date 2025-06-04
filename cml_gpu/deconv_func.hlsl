@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 // Attributes specifically for this operation
 struct deconv_attribs_s
@@ -99,13 +99,13 @@ void deconv_func(uint3 p_gid, uint3 p_dtid, uint3 p_gtid, uint p_gi)
         {
             uint l_idx_filter0 = l_k1 * l_d_f * l_d_f + l_k2 * l_d_f * l_d_f * l_out_ch;
             uint l_idx_input0 = l_k2 * l_d_i * l_d_i;
-            
+
             for (uint l_j1 = 0; l_j1 < l_d_f; l_j1++)
             {
                 int l_a_ind2 = l_i1 + l_p1 - l_j1;
                 int l_ind2 = l_a_ind2 / l_s1;
                 l_a_ind2 -= l_ind2 * l_s1;
-                
+
                 uint l_idx_input1 = l_idx_input0 + l_ind2 * l_d_i;
                 uint l_idx_filter1 = l_idx_filter0 + l_j1 * l_d_f;
 

@@ -1,17 +1,11 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "mb_lighting_common.hlsl"
 #include "mb_postprocess_vs.hlsl"
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
 ConstantBuffer<cb_push_exposure_fusion_blend_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
-// PS
-//-----------------------------------------------------------------------------
 float ps_main(ps_input_t p_input) : SV_TARGET
 {
     // Blend the exposures based on the blend weights.

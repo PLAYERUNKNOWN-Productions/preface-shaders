@@ -1,17 +1,15 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #ifndef MBSHADER_HDR_TONE_MAPPING_COMMON_H
 #define MBSHADER_HDR_TONE_MAPPING_COMMON_H
 
 #include "../helper_shaders/mb_common.hlsl"
 
-//-----------------------------------------------------------------------------
 float3 tonemap_reinhard(float3 p_color)
 {
     return p_color / (p_color + 1.0f);
 }
 
-//-----------------------------------------------------------------------------
 float3 tonemap_reinhard_jodie(float3 p_color)
 {
     float l_luminance = get_luminance(p_color);
@@ -19,13 +17,11 @@ float3 tonemap_reinhard_jodie(float3 p_color)
     return lerp(p_color / (1.0f + l_luminance), l_tcolor, l_tcolor);
 }
 
-//-----------------------------------------------------------------------------
 float3 tonemap_exp(float3 p_color)
 {
     return 1.0f - exp2(-p_color);
 }
 
-//-----------------------------------------------------------------------------
 float3 tonemap_uncharted2_partial(float3 p_x)
 {
     float l_a = 0.15f;
@@ -38,7 +34,6 @@ float3 tonemap_uncharted2_partial(float3 p_x)
     return ((p_x * (l_a * p_x + l_c * l_b) + l_d * l_e) / (p_x * (l_a * p_x + l_b) + l_d * l_f)) - l_e / l_f;
 }
 
-//-----------------------------------------------------------------------------
 float3 tonemap_uncharted2_filmic(float3 p_color)
 {
     float l_exposure_bias = 2.0f;
@@ -49,12 +44,11 @@ float3 tonemap_uncharted2_filmic(float3 p_color)
     return l_curr * l_white_scale;
 }
 
-//-----------------------------------------------------------------------------
 // From https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
 float3 tonemap_aces_approx(float3 p_color)
 {
     p_color *= 0.6f;
-    
+
 	float l_a = 2.51f;
     float l_b = 0.03f;
     float l_c = 2.43f;
@@ -63,7 +57,6 @@ float3 tonemap_aces_approx(float3 p_color)
     return saturate((p_color * (l_a * p_color + l_b))/(p_color * (l_c * p_color + l_d) + l_e));
 }
 
-//-----------------------------------------------------------------------------
 // From https://github.com/TheRealMJP/BakingLab/blob/master/BakingLab/ACES.hlsl
 //
 // sRGB => XYZ => D65_2_D60 => AP1 => RRT_SAT

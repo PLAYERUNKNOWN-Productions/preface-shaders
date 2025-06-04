@@ -1,12 +1,12 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Copyright (C) 2016-2021, Intel Corporation 
-// 
+// Copyright (C) 2016-2021, Intel Corporation
+//
 // SPDX-License-Identifier: MIT
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// XeGTAO is based on GTAO/GTSO "Jimenez et al. / Practical Real-Time Strategies for Accurate Indirect Occlusion", 
+// XeGTAO is based on GTAO/GTSO "Jimenez et al. / Practical Real-Time Strategies for Accurate Indirect Occlusion",
 // https://www.activision.com/cdn/research/Practical_Real_Time_Strategies_for_Accurate_Indirect_Occlusion_NEW%20VERSION_COLOR.pdf
-// 
+//
 // Implementation:  Filip Strugar (filip.strugar@intel.com), Steve Mccalla <stephen.mccalla@intel.com>         (\_/)
 // Version:         (see XeGTAO.h)                                                                            (='.'=)
 // Details:         https://github.com/GameTechDev/XeGTAO                                                     (")_(")
@@ -45,13 +45,17 @@ ConstantBuffer<GTAOConstants> g_push_constants : register(REGISTER_PUSH_CONSTANT
 // Engine-specific normal map loader
 lpfloat3 LoadNormal( int2 pos )
 {
+#ifdef XE_GTAO_GENERATE_NORMALS_INPLACE
+    // If normals are generated, this value won't be used
+    return lpfloat3(1,0,0);
+#else
     Texture2D<uint> srcNormalmap = ResourceDescriptorHeap[g_push_constants.SrcNormalmap];
 #if 1
-    // special decoding for external normals stored in 11_11_10 unorm - modify appropriately to support your own encoding 
+    // special decoding for external normals stored in 11_11_10 unorm - modify appropriately to support your own encoding
     uint packedInput = srcNormalmap.Load( int3(pos, 0) ).x;
     float3 unpackedOutput = XeGTAO_R11G11B10_UNORM_to_FLOAT3( packedInput );
     float3 normal = normalize(unpackedOutput * 2.0.xxx - 1.0.xxx);
-#else 
+#else
     // example of a different encoding
     float3 encodedNormal = srcNormalmap.Load(int3(pos, 0)).xyz;
     float3 normal = normalize(encodedNormal * 2.0.xxx - 1.0.xxx);
@@ -62,6 +66,7 @@ lpfloat3 LoadNormal( int2 pos )
 #endif
 
     return (lpfloat3)normal;
+#endif
 }
 
 // Engine-specific screen & temporal noise loader
@@ -167,25 +172,27 @@ void CSDenoiseLastPass( const uint2 dispatchThreadID : SV_DispatchThreadID )
     Texture2D<uint> srcWorkingAOTerm = ResourceDescriptorHeap[g_push_constants.SrcWorkingAOTerm];
     Texture2D<lpfloat> srcWorkingEdges = ResourceDescriptorHeap[g_push_constants.SrcWorkingEdges];
     RWTexture2D<uint> outFinalAOTerm = ResourceDescriptorHeap[g_push_constants.OutFinalAOTerm];
-    
+
     const uint2 pixCoordBase = dispatchThreadID * uint2( 2, 1 );    // we're computing 2 horizontal pixels at a time (performance optimization)
 
     SamplerState samplerPointClamp = SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP];
     XeGTAO_Denoise( pixCoordBase, g_push_constants, srcWorkingAOTerm, srcWorkingEdges, samplerPointClamp, outFinalAOTerm, true );
 }
 
+#ifndef XE_GTAO_GENERATE_NORMALS_INPLACE
 // Optional screen space viewspace normals from depth generation
 [numthreads(XE_GTAO_NUMTHREADS_X, XE_GTAO_NUMTHREADS_Y, 1)]
 void CSGenerateNormals( const uint2 pixCoord : SV_DispatchThreadID )
 {
     Texture2D<float> srcRawDepth = ResourceDescriptorHeap[g_push_constants.SrcRawDepth];
     SamplerState samplerPointClamp = SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP];
-    
+
     float3 viewspaceNormal = XeGTAO_ComputeViewspaceNormal( pixCoord, g_push_constants, srcRawDepth, samplerPointClamp );
 
     // pack from [-1, 1] to [0, 1] and then to R11G11B10_UNORM
     RWTexture2D<uint> outNormalmap = ResourceDescriptorHeap[g_push_constants.OutNormalmap];
     outNormalmap[ pixCoord ] = XeGTAO_FLOAT3_to_R11G11B10_UNORM( saturate( viewspaceNormal * 0.5 + 0.5 ) );
 }
+#endif
 ///
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

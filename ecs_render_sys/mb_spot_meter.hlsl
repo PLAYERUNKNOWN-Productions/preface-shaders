@@ -1,16 +1,8 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 ConstantBuffer<cb_push_spot_meter_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
-
-//-----------------------------------------------------------------------------
-// CS
-//-----------------------------------------------------------------------------
 
 [numthreads(SPOT_METER_THREAD_GROUP_SIZE, SPOT_METER_THREAD_GROUP_SIZE, 1)]
 void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)

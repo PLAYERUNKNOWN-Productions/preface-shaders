@@ -1,21 +1,16 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
-
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
 
 // Push constants
 ConstantBuffer<cb_push_hiz_map> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
 [numthreads(8, 8, 1)]
 void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
 {
     Texture2D<float> l_src = ResourceDescriptorHeap[g_push_constants.m_src_srv];
     RWTexture2D<float> l_dst = ResourceDescriptorHeap[g_push_constants.m_dst_uav];
-    
+
     uint2 l_dst_coords = uint2(p_dispatch_thread_id.x, p_dispatch_thread_id.y);
     uint2 l_src_coords = l_dst_coords * 2;
 

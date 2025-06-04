@@ -1,11 +1,7 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "mb_lighting_common.hlsl"
-
-//-----------------------------------------------------------------------------
-// Structures
-//-----------------------------------------------------------------------------
 
 struct ps_input_t
 {
@@ -13,23 +9,14 @@ struct ps_input_t
     float2 m_texcoord : TEXCOORD0;
 };
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 ConstantBuffer<cb_push_debug_luminance_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
 // [0, 1] -> [blue, red]
 float3 get_temperatured_color_by_range(float p_value)
 {
     float3 l_hsl = float3((1.0f - p_value) * 0.7f, 1, 1);
     return hsl_to_rgb(l_hsl);
 }
-
-//-----------------------------------------------------------------------------
-// VS
-//-----------------------------------------------------------------------------
 
 ps_input_t vs_main(uint p_vertex_id : SV_VertexID)
 {
@@ -40,10 +27,6 @@ ps_input_t vs_main(uint p_vertex_id : SV_VertexID)
 
     return l_result;
 }
-
-//-----------------------------------------------------------------------------
-// PS
-//-----------------------------------------------------------------------------
 
 float4 ps_main(ps_input_t p_input) : SV_TARGET
 {

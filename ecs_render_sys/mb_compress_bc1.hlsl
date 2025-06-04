@@ -1,12 +1,8 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "mb_compress_common.hlsl"
 #include "../helper_shaders/mb_common.hlsl"
 #include "../shared_shaders/mb_shared_common.hlsl"
-
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
 
 // CBV
 ConstantBuffer<cb_compress_bc1_t> g_push_constants  : register(REGISTER_PUSH_CONSTANTS);

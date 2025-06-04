@@ -1,10 +1,6 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
-
-//-----------------------------------------------------------------------------
-// Structures
-//-----------------------------------------------------------------------------
 
 struct ps_input_t
 {
@@ -13,24 +9,16 @@ struct ps_input_t
     float3 m_position_camera_local  : POSITION;
 };
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 ConstantBuffer<cb_push_moon_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
-// Helper functions
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 float4 get_billboard_position(uint p_vertex_id,
                               float3 p_billboard_pos,
                               float p_billboard_size,
                               float3 p_camera_pos,
                               float4x4 p_view_local,
                               float4x4 p_proj,
-                              float2 p_resolution)
+                              float2 p_resolution,
+                              float p_render_scale)
 {
     static const float2 g_quad_vertices[6] =
     {
@@ -47,15 +35,14 @@ float4 get_billboard_position(uint p_vertex_id,
     float3 l_pos_ndc = l_pos_cs.xyz / l_pos_cs.w;
 
     float2 l_offset = g_quad_vertices[p_vertex_id] * p_billboard_size;
-    float2 l_final_pos = l_pos_ndc.xy + l_offset * float2(2.0f / p_resolution.x, 2.0f / p_resolution.y);
+    float2 l_final_pos = l_pos_ndc.xy + l_offset * ((2.0*p_render_scale) / p_resolution);
 
     return float4(l_final_pos, l_pos_ndc.z, 1.0f);
 }
 
-//-----------------------------------------------------------------------------
 float2 get_billboard_texcoord(uint p_vertex_id)
 {
-    static const float2 g_quad_texcoords[6] = 
+    static const float2 g_quad_texcoords[6] =
     {
         float2(0.0f, 0.0f),
         float2(1.0f, 0.0f),
@@ -68,7 +55,6 @@ float2 get_billboard_texcoord(uint p_vertex_id)
     return g_quad_texcoords[p_vertex_id];
 }
 
-//-----------------------------------------------------------------------------
 // [Daniel et al. 2012, "Single-Pass Rendering of Day and Night Sky Phenomena"]
 float retrodirective_function(float p_phi, float p_g)
 {
@@ -84,7 +70,6 @@ float retrodirective_function(float p_phi, float p_g)
     }
 }
 
-//-----------------------------------------------------------------------------
 // [Daniel et al. 2012, "Single-Pass Rendering of Day and Night Sky Phenomena"]
 float scattering_function(float p_phi, float p_t)
 {
@@ -96,7 +81,6 @@ float scattering_function(float p_phi, float p_t)
     return (l_sin_phi + (M_PI - l_abs_phi) * l_cos_phi) / M_PI + p_t * l_cosine_adjustment * l_cosine_adjustment;
 }
 
-//-----------------------------------------------------------------------------
 // [Daniel et al. 2012, "Single-Pass Rendering of Day and Night Sky Phenomena"]
 float hapke_lommel_seeliger_brdf(float p_cos_theta_i, float p_cos_theta_r, float p_phi)
 {
@@ -110,7 +94,6 @@ float hapke_lommel_seeliger_brdf(float p_cos_theta_i, float p_cos_theta_r, float
     return l_brdf;
 }
 
-//-----------------------------------------------------------------------------
 // [Daniel et al. 2012, "Single-Pass Rendering of Day and Night Sky Phenomena"]
 float earthshine_intensity_function(float p_phi)
 {
@@ -119,7 +102,6 @@ float earthshine_intensity_function(float p_phi)
     return -0.0061f * l_phi_3 + 0.0289f * l_phi_2 - 0.0105f * sin(p_phi);
 }
 
-//-----------------------------------------------------------------------------
 // [Daniel et al. 2012, "Single-Pass Rendering of Day and Night Sky Phenomena"]
 float3 compute_moon_lighting(float3 p_k_lambda, float3 p_albedo, float p_cos_theta_i, float p_cos_theta_r, float p_phi)
 {
@@ -133,10 +115,6 @@ float3 compute_moon_lighting(float3 p_k_lambda, float3 p_albedo, float p_cos_the
     return p_k_lambda * p_albedo * l_brdf  + l_earthshine;
 }
 
-//-----------------------------------------------------------------------------
-// VS
-//-----------------------------------------------------------------------------
-
 ps_input_t vs_main(uint p_vertex_id : SV_VertexID)
 {
     ps_input_t l_result;
@@ -148,16 +126,13 @@ ps_input_t vs_main(uint p_vertex_id : SV_VertexID)
                                                  l_camera.m_camera_pos,
                                                  l_camera.m_view_local,
                                                  g_push_constants.m_proj,
-                                                 float2(l_camera.m_resolution_x, l_camera.m_resolution_y));
+                                                 float2(l_camera.m_resolution_x, l_camera.m_resolution_y),
+                                                 l_camera.m_render_scale);
     l_result.m_texcoord = get_billboard_texcoord(p_vertex_id);
     l_result.m_position_camera_local = g_push_constants.m_moon_position - l_camera.m_camera_pos;
 
     return l_result;
 }
-
-//-----------------------------------------------------------------------------
-// PS
-//-----------------------------------------------------------------------------
 
 float4 ps_main(ps_input_t p_input) : SV_TARGET
 {

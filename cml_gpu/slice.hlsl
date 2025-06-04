@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -8,9 +8,6 @@
 // uint m_tensor_offset_0; // Input
 // uint m_tensor_offset_1; // Output
 
-//-----------------------------------------------------------------------------
-// Entry point
-//-----------------------------------------------------------------------------
 #define GROUP_SIZE 1024
 #define N_TENSORS 2
 #define ID_OUT_TENSOR 1
@@ -62,7 +59,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
 
     uint l_n_outputs = 1;
     // number of outputs
-    for (l_i = 0; l_i < l_rank[ID_OUT_TENSOR]; l_i++)
+    for (uint l_i = 0; l_i < l_rank[ID_OUT_TENSOR]; l_i++)
     {
         l_n_outputs *= l_shape[ID_OUT_TENSOR][l_i];
     }

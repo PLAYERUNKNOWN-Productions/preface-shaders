@@ -1,16 +1,14 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #ifndef MBSHADER_CML_UTILS_H
 #define MBSHADER_CML_UTILS_H
 
-#include "cml_shader_buffers.hlsl"
+#include "cml_shared_buffers.hlsl"
 
 #define FLOAT_SIZE 4
 #define INT_SIZE 4
 #define MB_CML_GPU_MAX_TENSOR_RANK 8
 
-//-----------------------------------------------------------------------------
-// Group size related defines
 #ifndef GROUP_SIZE_UNARY
     #define GROUP_SIZE_UNARY 1024
 #endif
@@ -28,27 +26,23 @@
 #endif
 #define DEF_THREAD_GROUP_SIZE_AT [numthreads(GROUP_SIZE_AT_X, GROUP_SIZE_AT_Y, 1)]
 
-//-----------------------------------------------------------------------------
 uint float_attrib(in ByteAddressBuffer p_attrib_buffer, in uint p_value_offset, out float p_attrib)
 {
     p_attrib = asfloat(p_attrib_buffer.Load(p_value_offset));
     return 4;
 }
 
-//-----------------------------------------------------------------------------
 uint int_attrib(in ByteAddressBuffer p_attrib_buffer, in uint p_value_offset, out int p_attrib)
 {
     p_attrib = asint(p_attrib_buffer.Load(p_value_offset));
     return 4;
 }
 
-//-----------------------------------------------------------------------------
 uint attrib_count(in ByteAddressBuffer p_attrib_buffer, in uint p_base_offset)
 {
     return p_attrib_buffer.Load(p_base_offset);
 }
 
-//-----------------------------------------------------------------------------
 bool shape_equal(in uint4 p_shape_a, in uint4 p_shape_b)
 {
     for (uint l_index = 0; l_index < 4; ++l_index)
@@ -61,7 +55,6 @@ bool shape_equal(in uint4 p_shape_a, in uint4 p_shape_b)
     return true;
 }
 
-//-----------------------------------------------------------------------------
 uint thread_id_to_byte_index(in uint3 p_thread_id, in uint4 p_shape)
 {
     return (4 * (min(p_thread_id.x, p_shape[1] - 1) * p_shape[3] * p_shape[2] +
@@ -69,7 +62,6 @@ uint thread_id_to_byte_index(in uint3 p_thread_id, in uint4 p_shape)
                  min(p_thread_id.z, p_shape[3] - 1)));
 }
 
-//-----------------------------------------------------------------------------
 // Read the shape from the buffer at p_offset. Returns the number of bytes read.
 uint tensor_shape_prepend(in RWByteAddressBuffer p_buffer, in uint p_offset, out uint4 p_shape)
 {
@@ -110,7 +102,6 @@ uint tensor_shape_prepend(in RWByteAddressBuffer p_buffer, in uint p_offset, out
     return (l_offset - p_offset);
 }
 
-//-----------------------------------------------------------------------------
 // Read the shape from the buffer at p_offset. Returns the number of bytes read.
 uint tensor_shape(in RWByteAddressBuffer p_buffer, in uint p_offset, out uint4 p_shape)
 {
@@ -151,7 +142,6 @@ uint tensor_shape(in RWByteAddressBuffer p_buffer, in uint p_offset, out uint4 p
     return (l_offset - p_offset);
 }
 
-//-----------------------------------------------------------------------------
 uint tensor_shape(in RWByteAddressBuffer p_buffer, in uint p_offset, out uint2 p_shape)
 {
     uint l_offset = p_offset;
@@ -179,7 +169,6 @@ uint tensor_shape(in RWByteAddressBuffer p_buffer, in uint p_offset, out uint2 p
     return (l_offset - p_offset);
 }
 
-//-----------------------------------------------------------------------------
 uint tensor_shape(in RWByteAddressBuffer p_buffer, in uint p_offset, out uint p_shape[6])
 {
     uint4 l_val_03 = uint4(1, 1, 1, 1);
@@ -238,7 +227,6 @@ uint tensor_shape(in RWByteAddressBuffer p_buffer, in uint p_offset, out uint p_
     return p_offset;
 }
 
-//-----------------------------------------------------------------------------
 // Calculate the number of items in a tensor with p_shape
 uint shape_size(in uint4 p_shape)
 {
@@ -254,14 +242,12 @@ uint shape_size(in uint p_shape[MB_CML_GPU_MAX_TENSOR_RANK], in uint p_rank)
     return l_shape_size;
 }
 
-//-----------------------------------------------------------------------------
 // Calculate the number of bytes in a tensor with p_shape
 uint tensor_size(in uint4 p_shape)
 {
     return (4 * shape_size(p_shape));
 }
 
-//-----------------------------------------------------------------------------
 bool prepare_unary_operation(in cb_cml_meta_data_t p_meta_data, in RWByteAddressBuffer p_tensors,
                              in uint3 p_dispatch_thread_id, out uint p_out_byte_offset, out float p_a_in)
 {
@@ -305,7 +291,7 @@ void out_flatten_to_coord(in uint p_out_flat, in uint p_out_shape[MB_CML_GPU_MAX
         l_temp1 /= p_out_shape[l_i];
     }
 
-    for (l_i = MB_CML_GPU_MAX_TENSOR_RANK - 1; l_i >= p_rank; l_i--)
+    for (int l_i = MB_CML_GPU_MAX_TENSOR_RANK - 1; l_i >= p_rank; l_i--)
     {
         p_out_coord[l_i] = 0;
     }
@@ -354,7 +340,7 @@ void get_tensor_shape(in RWByteAddressBuffer p_tensors, in uint p_byte_offset_te
         p_shape[l_j] = asuint(p_tensors.Load(p_byte_offset_tensor + FLOAT_SIZE * (1 + l_j)));
     }
     // fill remaining shape as 1 (i.e. unsqueeze)
-    for (l_j = p_rank; l_j < MB_CML_GPU_MAX_TENSOR_RANK; l_j++)
+    for (uint l_j = p_rank; l_j < MB_CML_GPU_MAX_TENSOR_RANK; l_j++)
     {
         p_shape[l_j] = 1;
     }

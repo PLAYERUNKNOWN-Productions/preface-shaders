@@ -1,17 +1,9 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 // Root constants
 ConstantBuffer<cb_push_resolve_gsm_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
-
-//-----------------------------------------------------------------------------
-// CS
-//-----------------------------------------------------------------------------
 
 //#define DEBUG_RAY_DIR
 #define REVERSE_Z
@@ -19,9 +11,9 @@ ConstantBuffer<cb_push_resolve_gsm_t> g_push_constants : register(REGISTER_PUSH_
 float load_depth(uint2 p_pixel_coord, Texture2D<float> p_depth_buffer)
 {
 #ifdef REVERSE_Z
-    return 1.0f - p_depth_buffer.Load(uint3(p_pixel_coord, 0)); 
+    return 1.0f - p_depth_buffer.Load(uint3(p_pixel_coord, 0));
 #else
-    return p_depth_buffer.Load(uint3(p_pixel_coord, 0)); 
+    return p_depth_buffer.Load(uint3(p_pixel_coord, 0));
 #endif
 }
 
@@ -35,7 +27,7 @@ void cs_main(uint2 p_dispatch_thread_id : SV_DispatchThreadID)
     float l_start_depth_value = load_depth(l_pixel_coord, l_global_shadow_map);
 
 #ifdef DEBUG_RAY_DIR
-    bool l_output_debug_ray = all(g_push_constants.m_mouse_pos == p_dispatch_thread_id) && 
+    bool l_output_debug_ray = all(g_push_constants.m_mouse_pos == p_dispatch_thread_id) &&
                               g_push_constants.m_debug_texture_uav != RAL_NULL_BINDLESS_INDEX;
 #endif
 
@@ -44,7 +36,7 @@ void cs_main(uint2 p_dispatch_thread_id : SV_DispatchThreadID)
     float3 l_march_dir = g_push_constants.m_march_dir;
 
     float3 l_march_pos = float3(l_pixel_coord, l_depth_coord);
-    while(all(l_march_pos >= float3(0, 0, g_push_constants.m_gsm_z_near)) && 
+    while(all(l_march_pos >= float3(0, 0, g_push_constants.m_gsm_z_near)) &&
           all(l_march_pos < float3(g_push_constants.m_gsm_dimensions, g_push_constants.m_gsm_z_far)))
     {
         l_march_pos += l_march_dir;

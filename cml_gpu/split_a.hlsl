@@ -1,10 +1,10 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
 #include "cml_error.hlsl"
 
-// uint m_tensor_count;    // 
+// uint m_tensor_count;    //
 // uint m_tensor_offset_0; // Tensors
 // uint m_tensor_offset_1;
 // uint m_tensor_offset_2;
@@ -40,10 +40,6 @@
 
 // UP TO 15 TENSORS CAN BE CONCATENATED
 #define MAX_TENSORS 32
-
-//-----------------------------------------------------------------------------
-// Entry point
-//-----------------------------------------------------------------------------
 
 #define GROUP_SIZE 32
 #define NN 1  //p_gid.y max
@@ -112,8 +108,8 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
 
     uint l_n_elements = l_ratio * l_out_shape[2] * l_out_shape[3];
     uint l_inc = 4 * NN * GROUP_SIZE;
-    
-    for (l_i = 4 * (NN * p_gtid.x + p_gid.y); l_i < l_n_elements; l_i += l_inc)
+
+    for (uint l_i = 4 * (NN * p_gtid.x + p_gid.y); l_i < l_n_elements; l_i += l_inc)
     {
         uint4 l_temp = l_tensors.Load4(l_meta_data.m_tensor_offset_0 + 4 * (l_start + l_i) );
         l_tensors.Store4(l_tensor_out_offset + 4 * (5 + l_i), l_temp);

@@ -1,17 +1,9 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "mb_atmospheric_scattering_utils.hlsl"
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 ConstantBuffer<cb_push_generate_scattering_lut_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
-
-//-----------------------------------------------------------------------------
-// CS
-//-----------------------------------------------------------------------------
 
 [numthreads(GENERATE_SCATTERING_LUT_THREAD_GROUP_SIZE, GENERATE_SCATTERING_LUT_THREAD_GROUP_SIZE, 1)]
 void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
@@ -42,5 +34,5 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
                                                                      g_push_constants.m_planet_radius, g_push_constants.m_atmosphere_height,
                                                                      g_push_constants.m_density_scale_height, g_push_constants.m_sample_count);
 
-    l_rt[p_dispatch_thread_id.xy] = float4(l_density_ratio, l_optical_depth);
+    l_rt[p_dispatch_thread_id.xy] = float4(l_density_ratio, l_optical_depth * TO_FLOAT16_SCALE);
 }

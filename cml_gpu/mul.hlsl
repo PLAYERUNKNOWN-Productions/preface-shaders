@@ -1,11 +1,11 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
 #include "cml_error.hlsl"
 
 // uint m_tensor_count;    // 3
-// uint m_tensor_offset_0; // Input a 
+// uint m_tensor_offset_0; // Input a
 // uint m_tensor_offset_1; // Input b
 // uint m_tensor_offset_2; // Output
 
@@ -31,7 +31,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
         CML_SET_ERROR_INT(0, l_meta_data.m_attrib_count);
         CML_SET_KERNEL_ERROR;
     }
-    
+
 
     uint l_rank[N_TENSORS];
     uint l_shape[N_TENSORS][MB_CML_GPU_MAX_TENSOR_RANK];
@@ -51,7 +51,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
         {
             l_shape[l_i][l_j] = asuint(l_tensors.Load(l_byte_offset_tensor[l_i] + FLOAT_SIZE * (1 + l_j)));
         }
-        for (l_j = l_rank[l_i]; l_j < MB_CML_GPU_MAX_TENSOR_RANK; l_j++)
+        for (uint l_j = l_rank[l_i]; l_j < MB_CML_GPU_MAX_TENSOR_RANK; l_j++)
         {
             l_shape[l_i][l_j] = 1;
         }
@@ -60,12 +60,12 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
 
     uint l_n_outputs = 1;
     // number of outputs
-    for (l_i = 0; l_i < l_rank[ID_OUT_TENSOR]; l_i++)
+    for (uint l_i = 0; l_i < l_rank[ID_OUT_TENSOR]; l_i++)
     {
         l_n_outputs *= l_shape[ID_OUT_TENSOR][l_i];
     }
 
-    for (l_i = 0; l_i < l_rank[ID_OUT_TENSOR]; l_i++)
+    for (uint l_i = 0; l_i < l_rank[ID_OUT_TENSOR]; l_i++)
     {
         l_broadcast_x[l_i] = l_shape[0][l_i] < l_shape[ID_OUT_TENSOR][l_i];
         l_broadcast_y[l_i] = l_shape[1][l_i] < l_shape[ID_OUT_TENSOR][l_i];

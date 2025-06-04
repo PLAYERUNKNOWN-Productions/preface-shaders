@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -10,9 +10,6 @@
 // uint m_tensor_offset_2;  // offset
 // uint m_tensor_offset_3;  // output
 
-//-----------------------------------------------------------------------------
-// Entry point
-//-----------------------------------------------------------------------------
 #define GROUP_SIZE 16
 
 groupshared float l_input[4096];
@@ -27,12 +24,12 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
 
     // Rank 4 assumed
     uint4 l_shape = asuint(l_tensors.Load4(l_meta_data.m_tensor_offset_0 + 4));
-    
+
     uint l_byte_offset_input = l_meta_data.m_tensor_offset_0 + 20;
     uint l_byte_offset_scale = l_meta_data.m_tensor_offset_1 + 12;      // Assume [1, l_shape[1]]
     uint l_byte_offset_offset = l_meta_data.m_tensor_offset_2 + 12;     // [1, l_shape[1]]
     uint l_byte_offset_output = l_meta_data.m_tensor_offset_3 + 20;     // Same dimension as input
-    
+
     // Retrieve reduction l_axes
     uint l_axes[4] = {0, 0, 0, 0};
 
@@ -66,7 +63,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     }
 
     // Copy scale and offset vectors(?) to shared memory
-    for (l_temp_id = p_gtid.y * 16 + p_gtid.x; l_temp_id < 512; l_temp_id += 256)
+    for (uint l_temp_id = p_gtid.y * 16 + p_gtid.x; l_temp_id < 512; l_temp_id += 256)
     {
         l_scale[l_temp_id] = asfloat(l_tensors.Load(l_byte_offset_scale + 4 * l_temp_id));
         l_offset[l_temp_id] = asfloat(l_tensors.Load(l_byte_offset_offset + 4 * l_temp_id));
@@ -77,7 +74,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     // Total number of elements to be averaged
     float l_total = (float)(l_idx_end_2 * l_idx_end_3);
     float l_var, l_mean;
-    
+
     if (l_z < l_shape[2] && l_w < l_shape[3])
     {
         float l_sum = 0;

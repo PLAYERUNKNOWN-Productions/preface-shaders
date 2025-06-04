@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 // Attributes specifically for this operation
 struct conv_attribs_s
@@ -99,7 +99,7 @@ void conv_f_func(uint3 p_gid, uint3 p_dtid, uint3 p_gtid, uint p_gi)
     l_tensor_size = l_in_shape_filter[1] * l_d_f * l_d_f;
     uint l_c = l_k2 * l_d_f * l_d_f * l_in_ch;
 
-    for (l_i = 4 * (p_gtid.y * 16 + p_gtid.x); l_i < l_tensor_size; l_i += 1024)
+    for (uint l_i = 4 * (p_gtid.y * 16 + p_gtid.x); l_i < l_tensor_size; l_i += 1024)
     {
         float4 l_temp1 = asfloat(l_tensors.Load4(l_in_byte_offset_filter + 4 * (l_i + l_c)));
         l_filter[l_i] = l_temp1.x;

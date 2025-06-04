@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #ifndef MB_SHADER_DEBUG_RENDER
 #define MB_SHADER_DEBUG_RENDER
@@ -6346,7 +6346,6 @@ static float3 g_sphere_vertices[SPHERE_VERTEX_COUNT] =
     float3(-8.74228e-08, -1, -0),
 };
 
-//-----------------------------------------------------------------------------
 void draw_sphere(   float3 p_position_camera_local_space,
                     float p_radius,
                     float3 p_color)
@@ -6358,7 +6357,7 @@ void draw_sphere(   float3 p_position_camera_local_space,
     {
         uint32_t l_num_elements = 0;
         uint32_t l_element_stride = 0;
-        l_buffer.GetDimensions(l_num_elements, l_element_stride);            
+        l_buffer.GetDimensions(l_num_elements, l_element_stride);
 
         //check if we have enough space
         if (l_counter[0] + SPHERE_VERTEX_COUNT < l_num_elements)
@@ -6378,15 +6377,14 @@ void draw_sphere(   float3 p_position_camera_local_space,
     }
 }
 
-//-----------------------------------------------------------------------------
 void draw_line( float3 p_start_camera_local_space,
-                float3 p_end_camera_local_space,    
+                float3 p_end_camera_local_space,
                 float3 p_color)
 {
     RWStructuredBuffer<sb_debug_rendering_vertex_indirect_t> l_buffer = ResourceDescriptorHeap[DEBUG_RENDERING_LINES_UAV];
     RWStructuredBuffer<uint> l_counter = ResourceDescriptorHeap[DEBUG_RENDERING_LINES_COUNTER_UAV];
 
-    if( length(p_start_camera_local_space) < CULL_DISTANCE && 
+    if( length(p_start_camera_local_space) < CULL_DISTANCE &&
         length(p_end_camera_local_space) < CULL_DISTANCE)
     {
         uint32_t l_num_elements = 0;
@@ -6398,7 +6396,7 @@ void draw_line( float3 p_start_camera_local_space,
         {
             //reserve range
             uint l_index = 0;
-            InterlockedAdd(l_counter[0], 2, l_index); 
+            InterlockedAdd(l_counter[0], 2, l_index);
 
             l_buffer[l_index + 0].m_position    = float4(p_start_camera_local_space, 1.f);
             l_buffer[l_index + 0].m_color       = float4(p_color, 1.f);

@@ -1,17 +1,10 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "mb_lighting_common.hlsl"
 #include "mb_postprocess_vs.hlsl"
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
 ConstantBuffer<cb_push_motion_blur_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
-
-//-----------------------------------------------------------------------------
-// CS
-//-----------------------------------------------------------------------------
 
 float2 velocity_threshold(float2 l_velocity, float p_threshold, float p_max)
 {
@@ -22,38 +15,53 @@ float2 velocity_threshold(float2 l_velocity, float p_threshold, float p_max)
 }
 
 [numthreads(MOTION_BLUR_THREAD_GROUP_SIZE, MOTION_BLUR_THREAD_GROUP_SIZE, 1)]
-void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
+void cs_main(uint2 p_dispatch_thread_id : SV_DispatchThreadID)
 {
     uint2 l_dsc_dim = uint2(g_push_constants.m_dst_resolution_x, g_push_constants.m_dst_resolution_y);
-    if (any(p_dispatch_thread_id.xy >= l_dsc_dim))
+    if (any(p_dispatch_thread_id >= l_dsc_dim))
     {
         return;
     }
 
+    SamplerState l_point_sampler = (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP];
     RWTexture2D<float4> l_dst_uav = ResourceDescriptorHeap[g_push_constants.m_dst_texture_uav];
-    Texture2D<float2> l_velocity_srv = ResourceDescriptorHeap[g_push_constants.m_velocity_texture_srv];
     ConstantBuffer<cb_camera_t> l_camera = ResourceDescriptorHeap[g_push_constants.m_camera_cbv];
 
-    // Get uv
-    float2 l_uv = (p_dispatch_thread_id.xy + 0.5f) / (float2)l_dsc_dim;
+    float2 l_uv = (p_dispatch_thread_id + 0.5f) / (float2)l_dsc_dim;
 
-    // Get remapped uv
-    float2 l_remapped_uv = get_remapped_uv(l_uv, l_camera.m_render_scale);
+    // Get velocity, early out if we can just copy the current pixel
+    float2 l_combined_velocity = bindless_tex2d_sample_level(g_push_constants.m_velocity_texture_srv, l_point_sampler, l_uv).xy;
+    if (all(abs(l_combined_velocity) <= 0.001f))
+    {
+        // Only copy contents on first pass, as it acts as both motion blur and copy pass.
+        // The following passes either use the source buffer (already filled) or the destination
+        // buffer from the first pass (filled too thanks to this condition)
+        if (g_push_constants.m_pass_index == 0)
+        {
+            Texture2D<float4> l_texture = ResourceDescriptorHeap[g_push_constants.m_src_texture_srv];
+            l_dst_uav[p_dispatch_thread_id] = l_texture[p_dispatch_thread_id];
+        }
+
+        return;
+    }
 
     // Get depth
-    float l_depth = bindless_tex2d_sample_level(g_push_constants.m_depth_texture_srv, (SamplerState) SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], l_remapped_uv).r;
+    float l_depth = bindless_tex2d_sample_level(g_push_constants.m_depth_texture_srv, l_point_sampler, l_uv).r;
 
-    // Get world space local position
+    // Calculate object/camera velocities
     float3 l_pos_ws_local = get_world_space_local_position(l_uv, l_depth, l_camera.m_inv_view_proj_local);
-    float4 l_proj_pos = mul(float4(l_pos_ws_local, 1.0f), l_camera.m_view_proj_local_prev);
-    float2 l_uv_prev = (l_proj_pos.xy / l_proj_pos.w) * float2(0.5f, -0.5f) + float2(0.5f, 0.5f);
+    float2 l_pos_ndc_curr = float2(l_uv.x * 2.0f - 1.0f, 1.0f - l_uv.y * 2.0f);
+    float4 l_proj_pos_prev = mul(float4(l_pos_ws_local, 1.0f), l_camera.m_view_proj_local_prev);
+    float2 l_camera_velocity = get_motion_vector_without_jitter(float2(l_camera.m_resolution_x, l_camera.m_resolution_y), float3(l_pos_ndc_curr, 1.0f), l_proj_pos_prev.xyw, l_camera.m_jitter, l_camera.m_jitter_prev);
+    float2 l_object_velocity = l_combined_velocity - l_camera_velocity;
 
-    // Convert to UV-space
-    float2 l_object_velocity = g_push_constants.m_object_velocity_scale * l_velocity_srv[p_dispatch_thread_id.xy] * float2(0.5f, -0.5f);
+    // Convert object velocity to UV-space
+    float2 l_screen_to_uv_space = float2(1.0f / l_camera.m_resolution_x, 1.0f / l_camera.m_resolution_y);
+    l_object_velocity *= g_push_constants.m_object_velocity_scale * l_screen_to_uv_space;
     l_object_velocity = velocity_threshold(l_object_velocity, g_push_constants.m_object_threshold_velocity, g_push_constants.m_object_max_velocity);
 
-    // Compute camera velocity
-    float2 l_camera_velocity = g_push_constants.m_camera_velocity_scale * (l_uv - l_uv_prev);
+    // Convert camera velocity to UV-space
+    l_camera_velocity *= g_push_constants.m_camera_velocity_scale * l_screen_to_uv_space;
     l_camera_velocity = velocity_threshold(l_camera_velocity, g_push_constants.m_camera_threshold_velocity, g_push_constants.m_camera_max_velocity);
 
     // Add camera and object velocities
@@ -82,14 +90,14 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
         l_color += bindless_tex2d_sample_level(g_push_constants.m_src_texture_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP], l_sample_uv).xyz;
     }
 
-    l_dst_uav[p_dispatch_thread_id.xy] = float4(l_color / (float) l_num_samples, 1.0f);
+    l_dst_uav[p_dispatch_thread_id] = float4(l_color / (float) l_num_samples, 1.0f);
 
     // Highlight moving objects
 #if 0
     if (l_velocity_magnitude > 0.00001)
     {
-        l_dst_uav[p_dispatch_thread_id.xy] = float4(1.0f, 0, 0, 1.0f);
+        l_dst_uav[p_dispatch_thread_id] = float4(1.0f, 0, 0, 1.0f);
     }
 #endif
-    //l_dst_uav[p_dispatch_thread_id.xy] = float4(length(l_uv - l_uv_prev), 0, 0, 1.0f);
+    //l_dst_uav[p_dispatch_thread_id] = float4(length(l_uv - l_uv_prev), 0, 0, 1.0f);
 }

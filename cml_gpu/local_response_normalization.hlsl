@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -17,9 +17,6 @@
 #define l_p1 (l_attribs.m_padding.x)
 #define l_p2 (l_attribs.m_padding.z)
 
-//-----------------------------------------------------------------------------
-// Entry point
-//-----------------------------------------------------------------------------
 #define GROUP_SIZE 16
 [numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
 void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
@@ -51,7 +48,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     int l_half_size = l_attrib_size.y / 2;
 
     if (l_k2 < l_in_ch && l_i2 < l_in_shape_input[3] && l_i1 < l_in_shape_input[2])
-    {   
+    {
         float l_avg = 0.0f;
 
         for (int l_j2 = 0; l_j2 < l_attrib_size.y; l_j2++)

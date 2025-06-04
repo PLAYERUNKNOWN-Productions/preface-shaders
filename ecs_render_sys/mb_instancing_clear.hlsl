@@ -1,17 +1,9 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 // CBV
 ConstantBuffer<cb_push_instancing_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
-
-//-----------------------------------------------------------------------------
-// CS
-//-----------------------------------------------------------------------------
 
 [numthreads(INSTANCING_THREADGROUP_SIZE, 1, 1)]
 void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
@@ -26,11 +18,12 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
 
     // Get render item
     uint l_render_item_index = l_command_index; // 1 command per 1 item
-    StructuredBuffer<sb_render_item_t> l_render_items_buffer = ResourceDescriptorHeap[g_push_constants.m_render_item_buffer_srv];
+    StructuredBuffer<sb_render_item_t> l_render_items_buffer = ResourceDescriptorHeap[g_push_constants.m_push_constants_gltf.m_render_item_buffer_srv];
     sb_render_item_t l_render_item = l_render_items_buffer[l_render_item_index];
 
     // Get command buffer
     RWStructuredBuffer<indirect_draw_instancing_t> l_command_buffer = ResourceDescriptorHeap[g_push_constants.m_command_buffer_uav];
+    RWStructuredBuffer<uint64_t> l_command_buffer_predication = ResourceDescriptorHeap[g_push_constants.m_command_buffer_predication_uav];
 
     // Get scratch buffer
     RWStructuredBuffer<uint> l_scratch_buffer = ResourceDescriptorHeap[g_push_constants.m_scratch_buffer_index];
@@ -46,4 +39,6 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
     l_command_buffer[l_command_index].m_draw.m_start_instance_location  = 0;
 
     l_command_buffer[l_command_index].m_push_constants                  = g_push_constants.m_push_constants_gltf;
+
+    l_command_buffer_predication[l_command_index] = 0;
 }

@@ -1,20 +1,12 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "../shared_shaders/mb_shared_common.hlsl"
 #include "../helper_shaders/mb_util_noise.hlsl"
 #include "../helper_shaders/mb_quadtree_common.hlsl"
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 // Push constants
 ConstantBuffer<cb_push_tile_generation_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
-
-//-----------------------------------------------------------------------------
-// Compute shader
-//-----------------------------------------------------------------------------
 
 [numthreads(TILE_GENERATION_THREADGROUP_SIZE, TILE_GENERATION_THREADGROUP_SIZE, 1)]
 void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)

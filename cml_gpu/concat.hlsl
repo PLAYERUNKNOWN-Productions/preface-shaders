@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -11,9 +11,6 @@
 // uint m_tensor_offset_3;
 // uint m_tensor_offset_4;
 
-//-----------------------------------------------------------------------------
-// Entry point
-//-----------------------------------------------------------------------------
 // UP TO 15 TENSORS CAN BE CONCATENATED
 #define MAX_TENSORS 16
 #define GROUP_SIZE 16

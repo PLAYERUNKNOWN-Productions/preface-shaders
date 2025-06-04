@@ -1,11 +1,7 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "mb_lighting_common.hlsl"
-
-//-----------------------------------------------------------------------------
-// Structures
-//-----------------------------------------------------------------------------
 
 struct ps_input_t
 {
@@ -13,15 +9,7 @@ struct ps_input_t
     float2 m_texcoord       : TEXCOORD0;
 };
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 ConstantBuffer<cb_push_hdr_off_t>   g_push_constants    : register(REGISTER_PUSH_CONSTANTS);
-
-//-----------------------------------------------------------------------------
-// VS
-//-----------------------------------------------------------------------------
 
 ps_input_t vs_main(uint p_vertex_id : SV_VertexID)
 {
@@ -32,10 +20,6 @@ ps_input_t vs_main(uint p_vertex_id : SV_VertexID)
 
     return l_result;
 }
-
-//-----------------------------------------------------------------------------
-// PS
-//-----------------------------------------------------------------------------
 
 float4 ps_main(ps_input_t p_input) : SV_TARGET
 {

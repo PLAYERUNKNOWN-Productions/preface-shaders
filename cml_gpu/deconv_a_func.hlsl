@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 // Attributes specifically for this operation
 struct deconv_a_attribs_s
@@ -67,7 +67,7 @@ void deconv_a_func(uint3 p_gid, uint3 p_dtid, uint3 p_gtid, uint p_gi)
 {
     CML_GET_BUFFERS;
 
-    // Make sure we are not in an error-state 
+    // Make sure we are not in an error-state
     //CML_CHECK_KERNEL_ERROR;
 
     // Get the attributes

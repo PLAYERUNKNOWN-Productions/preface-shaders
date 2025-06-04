@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -8,9 +8,6 @@
 // uint m_tensor_offset_0;
 // uint m_tensor_offset_1;
 
-//-----------------------------------------------------------------------------
-// Entry point
-//-----------------------------------------------------------------------------
 #define GROUP_SIZE 64
 #define N_TENSORS 2
 #define ID_OUT_TENSOR 1
@@ -38,7 +35,7 @@ int flatten_input_to_global(in uint p_in_flat, in uint p_out_flat, in uint p_sha
 
     // Get a flattened index from coordinate
     uint l_flat_idx = l_ind[0];
-    for (l_i = 1; l_i < MB_CML_GPU_MAX_TENSOR_RANK; l_i++)
+    for (int l_i = 1; l_i < MB_CML_GPU_MAX_TENSOR_RANK; l_i++)
     {
         l_flat_idx = l_flat_idx * p_shape[l_i] + l_ind[l_i];
     }
@@ -75,7 +72,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     // Retrieve reduction axes
     uint l_axes[MB_CML_GPU_MAX_TENSOR_RANK] = { 0,0,0,0,0,0,0,0 };
 
-    for (l_i = 0; l_i < l_meta_data.m_attrib_count; l_i++)
+    for (uint l_i = 0; l_i < l_meta_data.m_attrib_count; l_i++)
     {
         uint l_axis_dim = asuint(l_attributes.Load(l_meta_data.m_attrib_offset + FLOAT_SIZE * (1 + l_i)));
         l_axes[l_axis_dim] = 1;
@@ -86,7 +83,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     {
         float l_sum = 0.0;
 
-        for (l_i = 0; l_i < l_n_summed_elements; l_i++)
+        for (uint l_i = 0; l_i < l_n_summed_elements; l_i++)
         {
             uint l_idx_in = flatten_input_to_global(l_i, l_idx_out, l_shape[0], l_axes, l_rank[0]);
             l_sum += asfloat(l_tensors.Load(l_byte_offset_tensor[0] + FLOAT_SIZE * l_idx_in));

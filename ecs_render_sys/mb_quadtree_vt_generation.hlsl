@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "../shared_shaders/mb_shared_common.hlsl"
@@ -8,27 +8,17 @@
 // Variants
 // OUTPUT_UV
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 ConstantBuffer<cb_push_vt_generation_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
-// Structures
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 struct quadtree_material_t
 {
     float3 m_base_color;
-    float3 m_normal_ts;
+    float2 m_normal_ts;
     float m_ao;
     float m_roughness;
     float m_local_height;
 };
 
-//-----------------------------------------------------------------------------
 quadtree_material_t get_material(   StructuredBuffer<sb_geometry_pbr_material_t> p_pbr_material_list,
                                     int p_index,
                                     float2 p_uv,
@@ -36,40 +26,34 @@ quadtree_material_t get_material(   StructuredBuffer<sb_geometry_pbr_material_t>
 {
     quadtree_material_t l_material;
 
-    //-------------------------------------------------------------------------
     // Procadural materials
-
     if (p_index == g_push_constants.m_material_count + 0)
     {
         l_material.m_base_color         = 1.0f;
-        l_material.m_normal_ts          = float3(0.5f, 0.5f, 1.0f);
+        l_material.m_normal_ts          = float2(0.5f, 0.5f);
         l_material.m_ao                 = 1.0f;
         l_material.m_roughness          = 1.0f;
         l_material.m_local_height       = 1.0f;
         return l_material;
     }
 
-    //-------------------------------------------------------------------------
     // Bound check
     if (p_index >= g_push_constants.m_material_count)
     {
         return (quadtree_material_t)0;
     }
 
-    //-------------------------------------------------------------------------
-    // Texture
-
     // Get material from the list
     sb_geometry_pbr_material_t l_pbr_material = p_pbr_material_list[NonUniformResourceIndex(p_index)];
 
     // Read textures
     float4 l_base_color_texture = bindless_tex2d_sample_level(NonUniformResourceIndex(l_pbr_material.m_base_color_texture_srv), (SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_WRAP], p_uv, p_mip_level, 0);
-    float3 l_normal_texture     = bindless_tex2d_sample_level(NonUniformResourceIndex(l_pbr_material.m_normal_map_texture_srv), (SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_WRAP], p_uv, p_mip_level, 0).xyz;
+    float2 l_normal_texture     = bindless_tex2d_sample_level(NonUniformResourceIndex(l_pbr_material.m_normal_map_texture_srv), (SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_WRAP], p_uv, p_mip_level, 0).rg;
     float4 l_mask_texture       = bindless_tex2d_sample_level(NonUniformResourceIndex(l_pbr_material.m_occlusion_texture_srv), (SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_WRAP], p_uv, p_mip_level, 0);
 
     // Unpack data
     l_material.m_base_color         = l_base_color_texture.rgb;
-    l_material.m_normal_ts          = l_normal_texture;
+    l_material.m_normal_ts          = l_normal_texture.rg;
     l_material.m_ao                 = l_mask_texture.r;
     l_material.m_roughness          = l_mask_texture.b;
     l_material.m_local_height       = l_mask_texture.g;
@@ -77,7 +61,6 @@ quadtree_material_t get_material(   StructuredBuffer<sb_geometry_pbr_material_t>
     return l_material;
 }
 
-//-----------------------------------------------------------------------------
 float2 rotate_2D(float2 p_uv, float p_angle)
 {
     float2x2 l_rot_matrix = float2x2(cos(p_angle), -sin(p_angle),
@@ -85,8 +68,7 @@ float2 rotate_2D(float2 p_uv, float p_angle)
     return mul(l_rot_matrix, p_uv);
 }
 
-//-----------------------------------------------------------------------------
-// Height blend for vector
+// Height blend for float3
 float3 height_blend(float3 p_color_01, float3 p_color_02, float p_heightmap_01, float p_heightmap_02, float2 p_mask)
 {
     float2 l_heightmap = float2(p_heightmap_01, p_heightmap_02) * p_mask;
@@ -98,17 +80,25 @@ float3 height_blend(float3 p_color_01, float3 p_color_02, float p_heightmap_01, 
     return l_heightmap.r > l_heightmap.g ? p_color_01 : p_color_02;
 }
 
-//-----------------------------------------------------------------------------
+// Height blend for float2
+float2 height_blend(float2 p_color_01, float2 p_color_02, float p_heightmap_01, float p_heightmap_02, float2 p_mask)
+{
+    float2 l_heightmap = float2(p_heightmap_01, p_heightmap_02) * p_mask;
+
+#if 0 //Debug renders blending colors
+    return l_heightmap.r > l_heightmap.g ? (p_color_01 + float3(0.20,0,0)) / 1.2 : (p_color_02 + float3(0,0.20,0)) / 1.2;
+#endif
+
+    return l_heightmap.r > l_heightmap.g ? p_color_01 : p_color_02;
+}
+
+
 // Heightblend for greyscale
 float height_blend(float p_color_01, float p_color_02, float p_heightmap_01, float p_heightmap_02, float2 p_mask)
 {
     float2 l_heightmap = float2(p_heightmap_01, p_heightmap_02) * p_mask;
     return l_heightmap.r > l_heightmap.g ? p_color_01 : p_color_02;
 }
-
-//-----------------------------------------------------------------------------
-// Compute shader
-//-----------------------------------------------------------------------------
 
 [numthreads(VT_GENERATION_THREADGROUP_SIZE, VT_GENERATION_THREADGROUP_SIZE, 1)]
 void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
@@ -176,10 +166,6 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
     float4 l_layer_mask_1 = bindless_tex2d_array_sample_level(g_push_constants.m_tile_layer_mask_1_index, (SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP], float3(l_splat_vt_uv, g_push_constants.m_tile_texture_slice), 0, 0);
     float4 l_layer_mask_2 = bindless_tex2d_array_sample_level(g_push_constants.m_tile_layer_mask_2_index, (SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP], float3(l_splat_vt_uv, g_push_constants.m_tile_texture_slice), 0, 0);
     float4 l_layer_mask_3 = bindless_tex2d_array_sample_level(g_push_constants.m_tile_layer_mask_3_index, (SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP], float3(l_splat_vt_uv, g_push_constants.m_tile_texture_slice), 0, 0);
-
-    //-------------------------------------------------------------------------
-    // Blending
-    //-------------------------------------------------------------------------
 
     // Pick correct mip-level
     float l_mip_level = g_push_constants.m_mip_level;
@@ -292,11 +278,7 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
     // Store material into virtual texture
     uint2 l_dst_xyz = uint2(p_dispatch_thread_id.xy);
     l_vt0_tile[l_dst_xyz] = float4(l_material.m_base_color, l_material.m_roughness);
-    l_vt1_tile[l_dst_xyz] = float4(l_material.m_normal_ts, l_material.m_ao);
-
-    //-------------------------------------------------------------------------
-    // Debug output
-    //-------------------------------------------------------------------------
+    l_vt1_tile[l_dst_xyz] = float4(l_material.m_normal_ts.rg, 0, l_material.m_ao);
 
 #if OUTPUT_UV
     l_vt0_tile[l_dst_xyz] = float4(l_tile_texture_uv, 0, 0.99f);

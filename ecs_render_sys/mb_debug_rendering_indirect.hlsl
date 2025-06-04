@@ -1,26 +1,15 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "mb_lighting_common.hlsl"
 
 ConstantBuffer<cb_push_debug_rendering_indirect_t>  g_push_constants    : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
-// Structures
-//-----------------------------------------------------------------------------
 struct blend_ps_input_t
 {
     float4 m_sv_position    : SV_POSITION;
     float4 m_color          : COLOR;
 };
-
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
-// VS
-//-----------------------------------------------------------------------------
 
 blend_ps_input_t vs_main(uint p_vertex_id : SV_VertexID)
 {
@@ -38,10 +27,6 @@ blend_ps_input_t vs_main(uint p_vertex_id : SV_VertexID)
 
     return l_result;
 }
-
-//-----------------------------------------------------------------------------
-// PS
-//-----------------------------------------------------------------------------
 
 float4 ps_main(blend_ps_input_t p_input) : SV_TARGET
 {

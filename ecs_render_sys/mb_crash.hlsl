@@ -1,20 +1,12 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
-
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
 
 // Push constants
 ConstantBuffer<cb_push_crash_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
-// CS
-//-----------------------------------------------------------------------------
-
 [numthreads(32, 32, 1)]
-void cs_main_page_fault(uint3 p_dispatch_thread_id : SV_DispatchThreadID) 
+void cs_main_page_fault(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
 {
     // This is currently (10/12/2024) broken but not required.
 

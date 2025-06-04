@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #ifndef MB_SHADER_PROCEDURAL_COMMON
 #define MB_SHADER_PROCEDURAL_COMMON
@@ -9,7 +9,6 @@
 // Enables elevation generation from noise
 //#define ELEVATION_FROM_NOISE
 
-//-----------------------------------------------------------------------------
 float3 tile_to_cube_coords(float2 p_tile_coord,
                            float2 p_tile_uv,
                            float p_tile_size,
@@ -48,8 +47,6 @@ float3 tile_to_cube_coords(float2 p_tile_coord,
     return l_cube_coords;
 }
 
-
-//-----------------------------------------------------------------------------
 // Noise based on fractured camera position
 float generate_tile_elevation_frac(float2 p_uv)
 {
@@ -71,7 +68,6 @@ float generate_tile_elevation_frac(float2 p_uv)
     return noise * noise * noise * 200000.0;
 }
 
-//-----------------------------------------------------------------------------
 float3 load_mask(float2 tile_uv,
                  uint mask_buffer_srv,
                  uint mask_channel_count,

@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -28,13 +28,13 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     uint4 l_out_shape;
     uint l_out_byte_offset = l_meta_data.m_tensor_offset_1;
     l_out_byte_offset += tensor_shape(l_tensors, l_out_byte_offset, l_out_shape);
-    
+
     uint l_k1 = p_gid.z;
     uint l_i1 = p_gid.y * GROUP_SIZE + p_gtid.y;
     uint l_i2 = p_gid.x * GROUP_SIZE + p_gtid.x;
-    int l_n_output = l_out_shape[1] * l_out_shape[2] * l_out_shape[3];       
+    int l_n_output = l_out_shape[1] * l_out_shape[2] * l_out_shape[3];
     int l_idx_out = l_k1 * l_out_shape[2] * l_out_shape[3] + l_i1 * l_out_shape[3] + l_i2;
-    
+
     // align_corner = true
     float l_y = float(l_i1 * (l_in_shape[2] - 1)) / float(l_out_shape[2] - 1);
     float l_x = float(l_i2 * (l_in_shape[3] - 1)) / float(l_out_shape[3] - 1);
@@ -42,19 +42,19 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     int l_x1 = floor(l_x);
     int l_y2 = l_y1 + 1;
     int l_x2 = l_x1 + 1;
-    
+
     if (l_x1 == l_in_shape[3] - 1)
     {
         l_x1--;
         l_x2--;
     }
-    
+
     if (l_y1 == l_in_shape[2] - 1)
     {
         l_y1--;
         l_y2--;
     }
-    
+
     uint l_idx_input11 = SIZE_FLOAT * (l_x1 + l_in_shape[3] * (l_y1 + l_in_shape[2] * l_k1));
     uint l_idx_input12 = SIZE_FLOAT * (l_x2 + l_in_shape[3] * (l_y1 + l_in_shape[2] * l_k1));
     uint l_idx_input21 = SIZE_FLOAT * (l_x1 + l_in_shape[3] * (l_y2 + l_in_shape[2] * l_k1));

@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 // Attributes specifically for this operation
 struct conv_c_attribs_s
@@ -67,7 +67,7 @@ void conv_c_func(uint3 p_gid, uint3 p_dtid, uint3 p_gtid, uint p_gi)
 
     uint l_in_byte_offset_input = l_meta_data.m_tensor_offset_0 + 20;
     uint l_in_byte_offset_filter = l_meta_data.m_tensor_offset_1 + 20;
-    
+
     uint l_in_byte_offset_bias = l_meta_data.m_tensor_offset_2;
     uint2 l_in_shape_bias = asuint(l_tensors.Load2(l_in_byte_offset_bias + FLOAT_SIZE));
     l_in_byte_offset_bias += FLOAT_SIZE * (1 + 2);

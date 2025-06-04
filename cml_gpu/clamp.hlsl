@@ -1,11 +1,11 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
 #include "cml_error.hlsl"
 
 // uint m_tensor_count;    // 4
-// uint m_tensor_offset_0; // Input 
+// uint m_tensor_offset_0; // Input
 // uint m_tensor_offset_1; // lower bound
 // uint m_tensor_offset_2; // upper bound
 // uint m_tensor_offset_3; // Output
@@ -47,7 +47,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     l_in_byte_offset_high += tensor_shape(l_tensors, l_in_byte_offset_high, l_in_shape_high);
     l_out_byte_offset_output += tensor_shape(l_tensors, l_out_byte_offset_output, l_out_shape_output);
 
-       
+
     uint l_dim_x[4];
     uint l_dim_y[4];
     uint l_dim_z[4];

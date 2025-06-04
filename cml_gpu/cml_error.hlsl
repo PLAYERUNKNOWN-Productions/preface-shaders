@@ -1,10 +1,8 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
-//-----------------------------------------------------------------------------
 // See mb_cml_gpu_utils.cpp, line 196, init_inference_gpu()
 // Create a buffer for error, debug en develpoment feedback
 // Type   | byte-offset | byte-count  | word-count | description
-//-----------------------------------------------------------------------------
 // uint     0             4             1            error-count
 // int      4             28            7            int numbers
 // float    32            32            8            float numbers

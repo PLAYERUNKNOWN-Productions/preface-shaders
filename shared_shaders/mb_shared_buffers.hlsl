@@ -1,35 +1,17 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
-#ifndef MB_SHADER_SHADER_BUFFERS
-#define MB_SHADER_SHADER_BUFFERS
+#ifndef MB_SHADER_BUFFERS_HLSL
+#define MB_SHADER_BUFFERS_HLSL
 
 #include "mb_shared_common.hlsl"
 
 // This is HLSL shared with C implementation
 // Use of only shared functionality is permitted!
 
-//-----------------------------------------------------------------------------
 // Define math types
-//-----------------------------------------------------------------------------
-
 #ifdef __cplusplus
 
-// Define types to match with C++ code
-#define double4 mb_math::double4
-#define float3x3 mb_math::float3x3
-#define float4x4 mb_math::float4x4
-#define float4x3 mb_math::float4x3
-#define float2 mb_math::float2
-#define float3 mb_math::float3
-#define float4 mb_math::float4
-#define int2 mb_math::int2
-#define int3 mb_math::int3
-#define int4 mb_math::int4
-#define uint2 mb_math::uint2
-#define uint3 mb_math::uint3
-#define uint4 mb_math::uint4
-#define uint uint32_t
-#define int int32_t
+#include "mb_shared_types_define.hlsl"
 
 // Define macro for passing structures as push constants
 #define RAL_PUSH_CONSTANTS(l_push_constants) sizeof(l_push_constants), &l_push_constants
@@ -41,15 +23,10 @@
 //! \todo DXC compiler currently does not support turning off cb packing, but it might in the future
 #pragma pack(push, 4)
 
-namespace mb_shader_buffers
+namespace mb_shared_buffers
 {
 #endif
 
-//-----------------------------------------------------------------------------
-// Constant buffers
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 struct cb_push_gltf_t
 {
     uint m_camera_cbv;
@@ -67,15 +44,14 @@ struct cb_push_gltf_t
     uint m_light_list_cbv;
     uint m_time; // milliseconds
 
+    uint m_time_prev; // milliseconds
     uint m_shadow_caster_count;
     uint m_shadow_caster_srv;
-    uint m_padding_0;
     uint m_gsm_srv;
 
     float4x4 m_gsm_camera_view_local_proj;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_camera_t
 {
     float4x4 m_view_local;
@@ -86,30 +62,31 @@ struct cb_camera_t
     float4x4 m_align_ground_rotation;
     float4 m_frustum_planes[12]; // 6 frustum planes + up to 6 additional planes(for example during shadow pass)
 
-    float4 m_fov_vertical; // (angle, tan(0.5f * angle), unused, unused)
-
-    float3 m_camera_pos;
-
     float m_z_near;
     float m_z_far;
+    float m_mip_lod_bias;
+    float m_render_scale;
+
+    float3 m_camera_pos; // This will result in imprecisions: used in raytracing
+    uint m_num_frustum_planes;
+
+    float3 m_camera_pos_delta;
+    float m_fov_vertical; // tan(0.5f * angle)
 
     // Fractional part of the camera computed as: m_camera_pos_frac_N = (float3)frac((double3)m_camera_pos / N)
     float3 m_camera_pos_frac_1;
-
-    float3 m_camera_pos_frac_100;
     float m_resolution_x;
 
-    float3 m_camera_pos_frac_10000;
+    float3 m_camera_pos_frac_100;
     float m_resolution_y;
 
-    float2 m_render_scale;
-
-    uint m_num_frustum_planes;
-
+    float3 m_camera_pos_frac_10000;
     uint m_render_output_mask;
+
+    float2 m_jitter;
+    float2 m_jitter_prev;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_adapted_luminance_t
 {
     uint m_adapted_lum_texture_srv;
@@ -124,7 +101,6 @@ struct cb_push_adapted_luminance_t
     float m_max_avg_lum;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_luminance_t
 {
     uint m_src_texture_srv;
@@ -132,7 +108,6 @@ struct cb_push_luminance_t
     uint2 m_dst_resolution;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_plot_adapted_luminance_t
 {
     uint2 m_adapted_lum_texture_srv;
@@ -143,22 +118,23 @@ struct cb_push_plot_adapted_luminance_t
     float2 m_lum_bounds; // x: lower bound, y: upper bound
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_debug_luminance_t
 {
     uint m_src_texture_srv;
     float2 m_lum_bounds; // x: lower bound, y: upper bound
 };
 
-//-----------------------------------------------------------------------------
-struct cb_push_tone_mapping_fixed_exposure_t
+struct cb_push_tone_mapping_t
 {
     uint m_hdr_texture_srv;
     float m_key_value;
     uint m_tonemap_operator;
+    uint m_lum_texture_srv; // Only used with eye adaptation
+    float m_lum_uvx;        // Only used with eye adaptation
+    uint m_color_correction_lut_srv;
+    uint m_color_correction_lut_size;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_exposure_fusion_exposures_t
 {
     uint m_hdr_texture_srv;
@@ -169,21 +145,18 @@ struct cb_push_exposure_fusion_exposures_t
     float m_exposure_shadows;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_exposure_fusion_weights_t
 {
     uint m_texture_srv;
     float m_sigma_squared;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_exposure_fusion_blend_t
 {
     uint m_weights_texture_srv;
     uint m_exposures_texture_srv;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_exposure_fusion_blend_laplacian_t
 {
     uint m_exposures_texture_srv;
@@ -193,7 +166,6 @@ struct cb_push_exposure_fusion_blend_laplacian_t
     uint m_accum_texture_srv;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_exposure_fusion_final_combine_t
 {
     uint m_hdr_texture_srv;
@@ -203,25 +175,15 @@ struct cb_push_exposure_fusion_final_combine_t
     float2 m_inv_pixel_size;
     float m_lum_uvx;
     float m_key_value;
+    uint m_color_correction_lut_srv;
+    uint m_color_correction_lut_size;
 };
 
-//-----------------------------------------------------------------------------
-struct cb_push_tone_mapping_eye_adaptation_t
-{
-    uint m_hdr_texture_srv;
-    float m_key_value;
-    uint m_tonemap_operator;
-    uint m_lum_texture_srv;
-    float m_lum_uvx;
-};
-
-//-----------------------------------------------------------------------------
 struct cb_push_hdr_off_t
 {
     uint m_src_texture_srv;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_upscaling_t
 {
     uint m_camera_cbv;
@@ -233,14 +195,12 @@ struct cb_push_upscaling_t
     uint2 m_dst_resolution;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_debug_cubemap_flat_view_t
 {
     uint m_cubemap_texture_srv;
     uint m_face_id;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_spot_meter_t
 {
     uint m_src_texture_srv;
@@ -249,20 +209,17 @@ struct cb_push_spot_meter_t
     uint2 m_dst_resolution;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_copy_t
 {
     uint m_src_texture_srv;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_memset_uav
 {
     float4 m_value;
-    uint m_texture_uav;
+    uint m_uav;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_downsample_2x2_t
 {
     uint m_src_texture_srv;
@@ -274,13 +231,11 @@ struct cb_push_downsample_2x2_t
     float2 m_inv_src_resolution;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_test_compute_t
 {
     uint m_rt_index;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_light_t
 {
     uint   m_type;
@@ -295,7 +250,6 @@ struct cb_light_list_t
     cb_light_t m_light_list[MB_MAX_LIGHTS];
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_raytracing_t
 {
     uint m_raytracing_accumulation_rt_uav;
@@ -340,7 +294,6 @@ struct cb_push_raytracing_t
     uint m_raytracing_normals_uav;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_raytracing_reconstruct_normal_t
 {
     uint m_camera_cbv;
@@ -353,7 +306,6 @@ struct cb_push_raytracing_reconstruct_normal_t
     float2 m_inv_dst_resolution;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_raytracing_upsampling_t
 {
     uint m_raytracing_accumulation_rt_srv;
@@ -370,7 +322,6 @@ struct cb_push_raytracing_upsampling_t
     uint m_ssao_rt_srv;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_raytracing_denoising_t
 {
     uint m_raytracing_accumulation_rt_srv;
@@ -388,7 +339,6 @@ struct cb_push_raytracing_denoising_t
     uint m_raytracing_normals_srv;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_raytracing_denoising_wavelet_t
 {
     uint m_texture_dst_specular_uav;
@@ -405,7 +355,6 @@ struct cb_push_raytracing_denoising_wavelet_t
     uint m_step_size;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_raytracing_combine_t
 {
     uint m_texture_dst_uav;
@@ -424,7 +373,6 @@ struct cb_push_raytracing_combine_t
     uint m_output_type;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_background_t
 {
     uint m_camera_cbv;
@@ -432,7 +380,6 @@ struct cb_push_background_t
     float m_exposure_value;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_tile_generation_t
 {
     // Output textures
@@ -463,7 +410,6 @@ struct cb_push_tile_generation_t
     uint m_splat_channels;              // 22 dwords
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_tile_generation_population_t
 {
     // Output textures
@@ -499,7 +445,6 @@ struct cb_push_tile_generation_population_t
     float m_tile_size;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_tile_population_update_t
 {
     uint m_population_update_buffer_srv;
@@ -507,7 +452,6 @@ struct cb_push_tile_population_update_t
     uint m_population_buffer_uav;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_compact_population_update_t
 {
     uint m_population_update_buffer_srv;
@@ -516,7 +460,6 @@ struct cb_push_compact_population_update_t
     uint m_compact_population_uav;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_vt_generation_t
 {
     // Output textures
@@ -549,7 +492,6 @@ struct cb_push_vt_generation_t
     float m_mip_level;                  // 25 dwords
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_tile_mesh_baking_t
 {
     uint m_tile_position_buffer_uav;
@@ -567,7 +509,6 @@ struct cb_push_tile_mesh_baking_t
     float m_horizontal_displacement_scale;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_tile_population_t
 {
     uint m_population_render_item_buffer_srv;
@@ -585,7 +526,6 @@ struct cb_push_tile_population_t
     uint m_compact_population_count_buffer_srv;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_generate_dfg_t
 {
     uint m_dst_texture_uav;
@@ -594,7 +534,6 @@ struct cb_push_generate_dfg_t
     uint m_num_samples;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_generate_diffuse_ld_t
 {
     uint m_camera_cbv;
@@ -604,7 +543,6 @@ struct cb_push_generate_diffuse_ld_t
     uint m_mip_level;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_generate_specular_ld_t
 {
     uint m_camera_cbv;
@@ -616,53 +554,73 @@ struct cb_push_generate_specular_ld_t
     float m_inv_omega_p;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_camera_light_probe_t
 {
     float4x4 m_inv_view_proj_local;
-    float4x4 m_align_ground_rotation;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_atmospheric_scattering_t
 {
     uint m_camera_cbv;
     uint m_depth_texture_srv;
     uint m_dst_texture_uav;
-    uint m_lut_texture_srv;                     // 4 dwords
+    uint m_dst_velocity_uav;
 
-    // Solid parameters
     float3 m_planet_center;
-    float m_planet_radius;                      // 8 dwords
-
-    uint2 m_dst_resolution;
+    float m_planet_radius;
 
     float2 m_density_scale_height;
-    float m_atmosphere_height;                  // 13 dwords
+    float m_atmosphere_height;
+    uint m_lut_texture_srv;
 
-    // Tunable parameters
+    float m_star_intensity;
     float3 m_rayleigh_scattering_coefficient;
+
     float3 m_mie_scattering_coefficient;
     float m_mie_g;
-    float3 m_solar_irradiance;                  // 23 dwords
 
-    // Parameters related to samples
+    float3 m_solar_irradiance;
     uint m_sample_count_light_direction;
-    uint m_sample_count_view_direction;         // 25 dwords
 
-    // Directional light source
     float3 m_sun_light_dir;
-    float3 m_sun_light_color;                   // 31 dwords
+    uint m_sample_count_view_direction;
 
-    // Stars
-    float m_star_intensity;
-
-    // Debugging
+    float3 m_sun_light_color;
     uint m_enable_rayleigh_scattering;
-    uint m_enable_mie_scattering;               // 34 dwords
+
+    uint2 m_dst_resolution;
+    uint m_enable_mie_scattering;
+    float m_fog_max_amount;
+
+    // Fog
+    float3 m_fog_height_color;
+    uint m_fog_height_enabled;
+
+    float3 m_fog_depth_color;
+    uint m_fog_depth_enabled;
+
+    float m_fog_height_start_from;
+    float m_fog_height_density;
+    float m_fog_height_distance_fadeout_density;
+    float m_fog_depth_start_from;
+
+    float m_fog_depth_density;
+    float m_fog_camera_height_fadeout_start;
+    float m_fog_camera_height_fadeout_inv_distance;
+    uint m_fog_sun_fade_enabled;
+
+    // Cloud
+    uint m_cloud_enabled;
+    uint m_cloud_2d_texture_srv;
+    uint m_cloud_3d_texture_srv;
+    float m_time;
+
+    float m_cloud_earth_radius;
+    float m_cloud_start_height;
+    float m_cloud_height;
+    uint m_padding_0;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_generate_scattering_lut_t
 {
     uint m_dst_texture_uav;
@@ -675,7 +633,6 @@ struct cb_push_generate_scattering_lut_t
     uint m_sample_count;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_instancing_t
 {
     uint m_command_buffer_uav;
@@ -683,25 +640,29 @@ struct cb_push_instancing_t
     uint m_instance_buffer_srv;
     uint m_instance_count_buffer_srv;
 
-    uint m_render_item_buffer_srv;
     uint m_render_item_count;
     uint m_scratch_buffer_index;
     uint m_instance_buffer_final_index;
+    uint m_hiz_map_srv;
 
     uint m_lod_camera_cbv;
     float m_lod_camera_offset_x;
     float m_lod_camera_offset_y;
     float m_lod_camera_offset_z;
 
-    uint m_hiz_map_srv;
-    float m_impostor_distance;
-    float m_lod_bias;
+    uint m_rendered_instances_buffer_uav;
+    uint m_rendered_instances_buffer_srv;
+    uint m_command_buffer_predication_uav;
+    uint m_padding_0;
+
     uint m_padding_1;
+    uint m_padding_2;
+    float m_lod_bias; // Debug only
+    uint m_forced_lod; // Debug only
 
     cb_push_gltf_t m_push_constants_gltf;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_procedural_splat_t
 {
     uint m_tile_level;
@@ -722,10 +683,10 @@ struct cb_procedural_splat_t
     // Usage: float2 l_pos = frac(m_tile_pos_frac_100.x + l_uv * m_tile_pos_frac_100.z);
     float3 m_tile_pos_frac_100;
     uint m_tree_index;
-    
+
     float3 m_tile_pos_frac_10000;
     uint m_buffer_uav;
-    
+
     float3 m_tile_pos_frac_1000000;
     float m_tile_ao_radius_meters;
 
@@ -740,7 +701,6 @@ struct cb_procedural_splat_t
     uint m_mask_channel_count;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_procedural_population_t
 {
     uint m_population_buffer_uav;
@@ -751,6 +711,7 @@ struct cb_procedural_population_t
     float m_tile_x;
     float m_tile_y;
     float m_tile_size;
+    float m_tile_coverage;
     uint m_tree_index;
 
     uint m_elevation_buffer_srv;
@@ -765,13 +726,11 @@ struct cb_procedural_population_t
     uint m_mask_channel_count;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_population_compact_init_t
 {
     uint m_compact_population_count_uav;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_population_compact_copy_t
 {
     uint m_src_compact_population_count_srv;
@@ -781,7 +740,6 @@ struct cb_push_population_compact_copy_t
     uint m_dst_compact_population_uav;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_population_compact_reset_t
 {
     uint m_tile_index;
@@ -790,7 +748,6 @@ struct cb_push_population_compact_reset_t
     uint m_compact_population_uav;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_population_compact_append_t
 {
     uint m_population_buffer_srv;
@@ -801,7 +758,6 @@ struct cb_push_population_compact_append_t
     uint m_compact_population_capacity;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_compress_bc1_t
 {
     uint m_texture_src_srv;
@@ -813,7 +769,6 @@ struct cb_compress_bc1_t
     uint m_src_resolution_y;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_compress_bc3_t
 {
     uint m_texture_src_srv;
@@ -823,7 +778,6 @@ struct cb_compress_bc3_t
     uint m_dst_resolution_y;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_compress_bc5_t
 {
     uint m_texture_src_srv;
@@ -835,7 +789,6 @@ struct cb_compress_bc5_t
     uint m_src_resolution_y;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_smaa_edge_detection_t
 {
     uint m_color_texture_srv;
@@ -844,7 +797,6 @@ struct cb_push_smaa_edge_detection_t
     float m_render_target_height;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_smaa_blend_weights_t
 {
     uint m_edges_texture_srv;
@@ -854,7 +806,6 @@ struct cb_push_smaa_blend_weights_t
     float m_render_target_height;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_smaa_blend_t
 {
     uint m_color_texture_srv;
@@ -863,7 +814,6 @@ struct cb_push_smaa_blend_t
     float m_render_target_height;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_debug_rendering_t
 {
     float4x4 m_view_proj_matrix;
@@ -886,14 +836,12 @@ struct cb_push_clear_counter_t
     uint m_counter_resource_uav;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_test_values_t
 {
     float4 m_float_val;
     int4 m_int_val;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_vt_test_t
 {
     uint m_src_texture_srv;
@@ -901,7 +849,6 @@ struct cb_vt_test_t
     uint m_src_texture_residency_map_srv;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_debug_visualize_texture_t
 {
     uint m_src_texture_srv;
@@ -923,7 +870,6 @@ struct cb_push_debug_visualize_texture_t
     uint m_is_hdr_color;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_downsample_with_comparison_t
 {
     uint m_src_texture_srv;
@@ -935,7 +881,6 @@ struct cb_push_downsample_with_comparison_t
     uint2 m_precomputed_step;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_reconstruct_normal_t
 {
     uint m_camera_cbv;
@@ -948,13 +893,11 @@ struct cb_push_reconstruct_normal_t
     float2 m_inv_dst_resolution;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_ssao_kernel_t
 {
     float3 m_samples[64];
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_ssao_t
 {
     uint m_camera_cbv;
@@ -968,7 +911,6 @@ struct cb_push_ssao_t
     float2 m_inv_dst_resolution;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_gtao_t
 {
     uint m_camera_cbv;
@@ -1005,7 +947,6 @@ struct cb_push_gtao_t
     float m_fade_speed;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_gtao_blur_t
 {
     uint m_camera_cbv;
@@ -1022,7 +963,6 @@ struct cb_push_gtao_blur_t
     float m_blur_sharpness;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_gtao_downsample_t
 {
     uint m_src_texture_srv;
@@ -1031,7 +971,6 @@ struct cb_push_gtao_downsample_t
     uint2 m_dst_resolution;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_lighting_combination_t
 {
     uint m_camera_cbv;
@@ -1049,11 +988,11 @@ struct cb_push_deferred_lighting_t
     uint m_visibility_buffer_srv;
     uint m_render_item_buffer_srv;
     uint m_render_instance_buffer_srv;
+
     uint m_direct_lighting_uav;
     uint m_indirect_lighting_uav;
     uint m_velocity_uav;
-
-    uint m_time;
+    uint m_padding;
 
     float2 m_dst_resolution;
 
@@ -1070,19 +1009,18 @@ struct cb_push_deferred_lighting_t
     uint m_lighting_classification_texture_srv;
     uint m_lighting_classification_type;
 
-    uint2 m_padding;
+    uint m_time;
+    uint m_time_prev;
     uint m_gsm_srv;
     float4x4 m_gsm_camera_view_local_proj;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_vt_feedback_apply_t
 {
     uint m_vt_feedback_buffer_capacity;
     uint m_render_item_buffer_srv;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_motion_blur_t
 {
     uint m_dst_resolution_x;
@@ -1102,7 +1040,6 @@ struct cb_push_motion_blur_t
     uint m_pass_index;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_impostor_t
 {
     uint m_camera_cbv;
@@ -1128,12 +1065,16 @@ struct cb_push_impostor_t
     uint m_sorted_instance_buffer_srv;
     uint m_hiz_map_srv;
     uint m_gsm_srv;
-    float m_start_distance;
+    float m_lod_bias;
+
+    uint m_shadow_caster_count;
+    uint m_shadow_caster_srv;
+    uint m_padding0;
+    uint m_padding1;
 
     float4x4 m_gsm_camera_view_local_proj;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_tile_impostor_population_t
 {
     uint m_compact_population_buffer_srv;
@@ -1149,7 +1090,6 @@ struct cb_push_tile_impostor_population_t
     uint2 m_elevation_tile_resolution;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_tile_impostor_population_debug_t
 {
     float3 m_position;
@@ -1163,14 +1103,12 @@ struct cb_push_tile_impostor_population_debug_t
     uint m_instance_buffer_uav;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_hiz_map
 {
     uint m_src_srv;
     uint m_dst_uav;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_hiz_pre_pass
 {
     float3 m_camera_diff;
@@ -1181,7 +1119,6 @@ struct cb_push_hiz_pre_pass
     uint m_time;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_moon_t
 {
     uint m_camera_cbv;
@@ -1203,7 +1140,6 @@ struct cb_push_moon_t
     float4x4 m_proj;                // 32 dwords
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_resolve_gsm_t
 {
     uint2 m_gsm_dimensions;
@@ -1219,7 +1155,6 @@ struct cb_push_resolve_gsm_t
     uint m_debug_texture_uav;   // Debug only
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_grass_patch_preparation_t
 {
     uint m_preparation_buffer_srv;
@@ -1240,7 +1175,6 @@ struct cb_push_grass_patch_preparation_t
     uint m_elevation_border_width;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_grass_culling_lod_t
 {
     uint m_camera_cbv;
@@ -1259,14 +1193,12 @@ struct cb_push_grass_culling_lod_t
     float m_culling_distance_squared;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_grass_lod_reset_t
 {
     uint m_num_lod_levels;
     uint m_count_buffer_uav;
 };
 
-//-----------------------------------------------------------------------------
 struct cb_push_grass_t
 {
     uint m_camera_cbv;
@@ -1293,6 +1225,7 @@ struct cb_push_grass_t
 
     // Wind
     uint m_time;
+    uint m_time_prev;
     float m_wind_scale;
     float m_wind_direction_rad;
 };
@@ -1304,11 +1237,12 @@ struct cb_push_crash_t
     uint m_invalid_uav_index;
 };
 
-//-----------------------------------------------------------------------------
-// Structured buffers
-//-----------------------------------------------------------------------------
+struct cb_push_imgui_t
+{
+    float4x4 m_projection;
+    uint m_texture_srv;
+};
 
-//-----------------------------------------------------------------------------
 struct sb_debug_shape_material_t
 {
     uint m_type;
@@ -1316,13 +1250,11 @@ struct sb_debug_shape_material_t
     uint m_instance_data_srv;
 };
 
-//-----------------------------------------------------------------------------
 struct sb_debug_shape_instance_data_t
 {
     float4 m_color;
 };
 
-//-----------------------------------------------------------------------------
 struct sb_quadtree_material_t
 {
     uint m_tile_instance_buffer_index;
@@ -1374,20 +1306,28 @@ struct sb_quadtree_material_t
 
     uint m_splat_channel_offset;
     uint4 m_splat_shape;
-    
+
     float m_skirt_distance_threshold_squared; // Squared distance from tile vertex to camera (meters). We only apply skirt when it's close enough.
     float m_skirt_scale;
 };
 
-//-----------------------------------------------------------------------------
 // Quadtree tile is approximated with a patch
 // Control points are derived from paper: http://cs.engr.uky.edu/~cheng/PUBL/Paper_Nagata.pdf
-struct sb_tile_instance_t
+struct sb_quadrilateral_patch
+{
+    float3 m_c00;
+    float3 m_c10;
+    float3 m_c01;
+    float3 m_c11;
+    float3 m_c20;
+    float3 m_c02;
+    float3 m_c12;
+    float3 m_c21;
+};
+
+struct sb_tile_instance_base
 {
     uint m_available; // 0 - not available, 1 - ready for use
-
-    // Quadtree index [0..5]
-    uint m_quadtree_index;
 
     // Patch normals
     float3 m_normal_0;
@@ -1395,27 +1335,31 @@ struct sb_tile_instance_t
     float3 m_normal_2;
     float3 m_normal_3;
 
-    // Patch control points
-    float3 m_patch_data_c00;
-    float3 m_patch_data_c10;
-    float3 m_patch_data_c01;
-    float3 m_patch_data_c11;
-    float3 m_patch_data_c20;
-    float3 m_patch_data_c02;
-    float3 m_patch_data_c12;
-    float3 m_patch_data_c21;
+    sb_quadrilateral_patch m_patch_data;
+
+    // Tile index in the buffer array
+    uint m_tile_index;
+
+    uint m_tile_level;
 
     // Entity ID used by selection pass
-    uint   m_entity_id;
-
-    // Tile index and parent index in the buffer array
-    uint   m_tile_index;
-    uint   m_parent_index;
-    uint   m_tile_level;
-    uint2  m_tile_id_xy;
+    uint m_entity_id;
 
     // Estimated tile size used for normal generation
-    float  m_tile_size_estimate;
+    float m_tile_size_estimate;
+};
+
+struct sb_tile_instance_t
+{
+    sb_tile_instance_base m_basic_data;
+
+    // Quadtree index [0..5]
+    uint m_quadtree_index;
+
+    // Parent index in the buffer array
+    uint m_parent_index;
+
+    uint2 m_tile_id_xy;
 
     // Blend factor to blend between tile levels
     float  m_blend_to_parent;
@@ -1423,7 +1367,6 @@ struct sb_tile_instance_t
     // UVs in parent's coordinate space
     float2 m_parent_uv_offset;
 
-    //
     float4 m_neighbours;            // left, right, bottom, top
     float4 m_neighbours_diagonal;   // top-left, top-right, bottom-left, bottom-right
 
@@ -1435,7 +1378,6 @@ struct sb_tile_instance_t
     float3 m_tile_local_to_camera_local;
 };
 
-//-----------------------------------------------------------------------------
 // Approximately a subset of sb_tile_instance_t, used for tile mesh baking
 struct sb_tile_instance_to_bake_t
 {
@@ -1445,15 +1387,7 @@ struct sb_tile_instance_to_bake_t
     float3 m_normal_2;
     float3 m_normal_3;
 
-    // Patch control pointes
-    float3 m_patch_data_c00;
-    float3 m_patch_data_c10;
-    float3 m_patch_data_c01;
-    float3 m_patch_data_c11;
-    float3 m_patch_data_c20;
-    float3 m_patch_data_c02;
-    float3 m_patch_data_c12;
-    float3 m_patch_data_c21;
+    sb_quadrilateral_patch m_patch_data;
 
     // Computed on cube, (pos_x, pos_y, period_xy)
     // Usage: float2 l_pos = frac(m_tile_pos_frac_100.x + l_uv * m_tile_pos_frac_100.z);
@@ -1475,7 +1409,32 @@ struct sb_tile_instance_to_bake_t
     float m_horizontal_displacement_scale;
 };
 
-//-----------------------------------------------------------------------------
+struct sb_ocean_tile_instance_t
+{
+    sb_tile_instance_t m_tile_data;
+
+    // Computed on cube, (pos_x, pos_y, period_xy)
+    // Usage: float2 l_pos = frac(m_tile_pos_frac_100.x + l_uv * m_tile_pos_frac_100.z);
+    float3 m_tile_pos_frac_10000;
+
+    // 0xFF = 0xF | 0xF0 = corners | borders
+    uint m_shared_vertices_masks;
+
+    // [0]: tl, [1], tr, [2]: bl, [3]: br
+    float3 m_shared_corners[4];
+
+    // [0]: left, [1], right, [2]: bottom, [3]: top
+    sb_quadrilateral_patch m_neighbour_patches[4];
+    uint4 m_shared_border_weight_masks;
+};
+
+struct sb_ocean_material
+{
+    uint m_tile_instance_buffer_index;
+
+    uint m_vertex_resolution;
+};
+
 struct sb_grass_patch_preparation_t
 {
     float2 m_uv;
@@ -1486,7 +1445,6 @@ struct sb_grass_patch_preparation_t
     float m_patch_radius;
 };
 
-//-----------------------------------------------------------------------------
 struct sb_grass_patch_item_t
 {
     uint m_type_id;
@@ -1500,7 +1458,6 @@ struct sb_grass_patch_item_t
     float m_patch_radius;
 };
 
-//-----------------------------------------------------------------------------
 struct sb_grass_patch_argument_t
 {
     float3 m_position_camera_local;
@@ -1514,7 +1471,6 @@ struct sb_grass_patch_argument_t
     uint m_blade_count;
 };
 
-//-----------------------------------------------------------------------------
 // Common render item description
 struct sb_render_item_t
 {
@@ -1560,21 +1516,18 @@ struct sb_render_item_t
     uint m_lod_index; // ToDo this only need to be here in debug builds. However, shaders dont use MB_DEBUG
 };
 
-//-----------------------------------------------------------------------------
 //! \brief Specifies render id list for each model. Later can be replaced with hierarchy
 struct sb_raytracing_hierarchy_t
 {
     uint m_render_item_id;
 };
 
-//-----------------------------------------------------------------------------
 //! \brief For each tile we store the render item explicitly. No need for indirection
 struct sb_raytracing_tile_hierarchy_t
 {
     sb_render_item_t m_render_item;
 };
 
-//-----------------------------------------------------------------------------
 struct sb_render_instance_population_t
 {
     float3 m_position;
@@ -1585,7 +1538,6 @@ struct sb_render_instance_population_t
     uint m_entity_id;               // Used for selection pass
 };
 
-//-----------------------------------------------------------------------------
 struct sb_render_instance_t
 {
     float4x3 m_transform;           // Transform
@@ -1596,17 +1548,17 @@ struct sb_render_instance_t
     uint m_user_data;               // Custom user data that can be provided per instance
 };
 
-//-----------------------------------------------------------------------------
 struct sb_impostor_item_t
 {
     uint m_albedo_alpha_srv;
     uint m_normal_depth_srv;
-    float m_octahedron_divisions;
-    uint m_padding;
+    float2 m_screen_coverage_range; // TODO: Only need the start, the end should always be 0
+
     float4 m_bounding_sphere;
+
+    float m_octahedron_divisions;
 };
 
-//-----------------------------------------------------------------------------
 struct sb_impostor_instance_t
 {
     float3 m_position;
@@ -1616,10 +1568,6 @@ struct sb_impostor_instance_t
     uint m_item_idx;
 };
 
-//-----------------------------------------------------------------------------
-// Geometry info buffer
-
-//-----------------------------------------------------------------------------
 struct sb_geometry_pbr_material_t
 {
     float3  m_emissive_factor;
@@ -1661,7 +1609,6 @@ struct sb_geometry_pbr_material_t
     float   m_alpha_cutoff;
 };
 
-//-----------------------------------------------------------------------------
 struct sb_shadow_caster_t
 {
     uint m_shadow_camera_cbv;
@@ -1676,7 +1623,6 @@ struct sb_shadow_caster_t
     float m_max_shadow_casting_distance;
 };
 
-//-----------------------------------------------------------------------------
 struct sb_population_item_t
 {
     uint m_item_id;
@@ -1685,7 +1631,6 @@ struct sb_population_item_t
     float m_rotation;
 };
 
-//-----------------------------------------------------------------------------
 struct sb_population_tile_item_t
 {
     uint m_tile_index;
@@ -1693,21 +1638,18 @@ struct sb_population_tile_item_t
     sb_population_item_t m_population_item;
 };
 
-//-----------------------------------------------------------------------------
 struct sb_debug_rendering_vertex_t
 {
     float4 m_position;
     float4 m_color;
 };
 
-//-----------------------------------------------------------------------------
 struct sb_debug_rendering_vertex_indirect_t
 {
     float4 m_position;
     float4 m_color;
 };
 
-//-----------------------------------------------------------------------------
 struct sb_population_update_t
 {
     uint m_cell_index;
@@ -1715,7 +1657,6 @@ struct sb_population_update_t
     uint m_value;
 };
 
-//-----------------------------------------------------------------------------
 struct sb_vt_feedback_t
 {
     uint m_render_item_id;
@@ -1723,10 +1664,8 @@ struct sb_vt_feedback_t
     float2 m_uv;
 };
 
-//-----------------------------------------------------------------------------
 // Indirect draw
 
-//-----------------------------------------------------------------------------
 struct indirect_draw_arguments_t
 {
     uint m_vertex_count_per_instance;
@@ -1744,30 +1683,23 @@ struct indirect_draw_indexed_arguments_t
     uint m_start_instance_location;
 };
 
-//-----------------------------------------------------------------------------
 struct indirect_draw_instancing_t
 {
     cb_push_gltf_t m_push_constants;
     indirect_draw_indexed_arguments_t m_draw;
 };
 
-//-----------------------------------------------------------------------------
 struct indirect_draw_debug_rendering_t
 {
     cb_push_debug_rendering_indirect_t m_push_constants;
     indirect_draw_arguments_t m_draw;
 };
 
-//-----------------------------------------------------------------------------
 struct indirect_draw_impostor_t
 {
     cb_push_impostor_t m_push_constants;
     indirect_draw_arguments_t m_draw;
 };
-
-//-----------------------------------------------------------------------------
-// Payloads
-//-----------------------------------------------------------------------------
 
 // Support different types for storing random seed
 //#define USE_RAND_XORSHIFT
@@ -1777,7 +1709,6 @@ struct indirect_draw_impostor_t
 #define rand_type_t uint
 #endif
 
-//-----------------------------------------------------------------------------
 struct pl_ray_payload_t
 {
     uint        m_path_length;
@@ -1786,37 +1717,19 @@ struct pl_ray_payload_t
     float3      m_radiance;     // Output
 };
 
-//-----------------------------------------------------------------------------
 struct pl_shadow_ray_payload_t
 {
     bool m_hit;
 };
 
-//-----------------------------------------------------------------------------
 // Undefine math types
-
 #ifdef __cplusplus
 };
 
 // Pop packing rules(see upper side of this file)
 #pragma pack(pop)
 
-// Undefine types to keep math types in a separate namespace
-#undef double4
-#undef float3x3
-#undef float4x4
-#undef float4x3
-#undef float2
-#undef float3
-#undef float4
-#undef int2
-#undef int3
-#undef int4
-#undef uint2
-#undef uint3
-#undef uint4
-#undef uint
-#undef int
+#include "mb_shared_types_undefine.hlsl"
 #endif // __cplusplus
 
-#endif // MB_SHADER_SHADER_BUFFERS
+#endif // MB_SHADER_BUFFERS_HLSL

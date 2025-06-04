@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -23,7 +23,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
 
     // Get ranks
     uint l_in_rank_a = asuint(l_tensors.Load(l_meta_data.m_tensor_offset_0));
-    uint l_in_rank_b = asuint(l_tensors.Load(l_meta_data.m_tensor_offset_1));    
+    uint l_in_rank_b = asuint(l_tensors.Load(l_meta_data.m_tensor_offset_1));
     uint l_out_rank_C = asuint(l_tensors.Load(l_meta_data.m_tensor_offset_2));
 
     // Get shapes
@@ -57,7 +57,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     uint l_id1 = p_gid.z;
     uint l_id2 = p_gid.y * GROUP_SIZE + p_gtid.y;
     uint l_id3 = p_gid.x * GROUP_SIZE + p_gtid.x;
-    
+
 
     if (l_id2 < l_out_shape_C[row] && l_id3 < l_out_shape_C[l_col])
     {

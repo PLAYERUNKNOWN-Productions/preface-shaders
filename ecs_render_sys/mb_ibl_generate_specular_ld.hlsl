@@ -1,11 +1,7 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "mb_lighting_common.hlsl"
-
-//-----------------------------------------------------------------------------
-// Structures
-//-----------------------------------------------------------------------------
 
 struct ps_input_t
 {
@@ -13,15 +9,7 @@ struct ps_input_t
     float3 m_position_ws_local  : POSITION;
 };
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 ConstantBuffer<cb_push_generate_specular_ld_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
-
-//-----------------------------------------------------------------------------
-// VS
-//-----------------------------------------------------------------------------
 
 ps_input_t vs_main(uint p_vertex_id : SV_VertexID)
 {
@@ -32,15 +20,10 @@ ps_input_t vs_main(uint p_vertex_id : SV_VertexID)
 
     l_result.m_position_cs = get_fullscreen_triangle_position(p_vertex_id);
     float4 l_position_ws_local = mul(l_result.m_position_cs, l_camera.m_inv_view_proj_local);
-    l_position_ws_local = mul(l_position_ws_local, l_camera.m_align_ground_rotation);
     l_result.m_position_ws_local = l_position_ws_local.xyz;
 
     return l_result;
 }
-
-//-----------------------------------------------------------------------------
-// PS
-//-----------------------------------------------------------------------------
 
 float4 ps_main(ps_input_t p_input) : SV_TARGET
 {

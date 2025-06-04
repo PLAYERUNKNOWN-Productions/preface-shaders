@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 // Attributes specifically for this operation
 struct conv_a_attribs_s
@@ -65,10 +65,7 @@ uint get_attribs(in ByteAddressBuffer p_attrib_buffer, in uint p_byte_offset, ou
 #define FLOAT_SIZE 4
 #define l_d_f_sqr 9
 
-//-----------------------------------------------------------------------------
 // ASSUMPTIONS
-//-----------------------------------------------------------------------------
-//
 // l_d_f == 3
 // l_d1 == l_d2 == l_s1 == l_s2 == l_p1 == l_p2 == 1
 // l_attribs.m_padding[0] = l_attribs.m_padding[1]
@@ -158,7 +155,7 @@ void conv_a_func(uint3 p_gid, uint3 p_dtid, uint3 p_gtid, uint p_gi)
             {
                 l_input_row3 = float4(0, 0, 0, 0);
             }
-            
+
             if (l_a2 == -1)
             {
                 l_input_row0[0] = 0;
@@ -175,7 +172,7 @@ void conv_a_func(uint3 p_gid, uint3 p_dtid, uint3 p_gtid, uint p_gi)
             }
 
             // partial sums
-            l_sum[l_group_id00][p_gtid.z] += 
+            l_sum[l_group_id00][p_gtid.z] +=
                   l_input_row0[0] * l_filter_row0[0] + l_input_row0[1] * l_filter_row0[1] + l_input_row0[2] * l_filter_row0[2]
                 + l_input_row1[0] * l_filter_row1[0] + l_input_row1[1] * l_filter_row1[1] + l_input_row1[2] * l_filter_row1[2]
                 + l_input_row2[0] * l_filter_row2[0] + l_input_row2[1] * l_filter_row2[1] + l_input_row2[2] * l_filter_row2[2];
@@ -217,7 +214,7 @@ void conv_a_func(uint3 p_gid, uint3 p_dtid, uint3 p_gtid, uint p_gi)
         float l_bias = asfloat(l_tensors.Load(l_in_byte_offset_bias));
 
         uint l_idx_output = l_i2 + l_i1 * l_d_o + l_k2 * l_d_o * l_d_o;
-        
+
         l_tensors.Store(l_out_byte_offset + FLOAT_SIZE * (l_idx_output), asuint(l_out[0] + l_bias));
         l_tensors.Store(l_out_byte_offset + FLOAT_SIZE * (l_idx_output + 1), asuint(l_out[1] + l_bias));
         l_tensors.Store(l_out_byte_offset + FLOAT_SIZE * (l_idx_output + l_d_o), asuint(l_out[2] + l_bias));

@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -6,7 +6,7 @@
 
 // uint m_tensor_count;    // 42
 // uint m_tensor_offset_0; // Input
-// uint m_tensor_offset_1; // Filter  
+// uint m_tensor_offset_1; // Filter
 // uint m_tensor_offset_2; // Bias
 // uint m_tensor_offset_3; // Output 2
 
@@ -64,10 +64,7 @@ uint get_attribs(in ByteAddressBuffer p_attrib_buffer, in uint p_byte_offset, ou
 
 #define FLOAT_SIZE 4
 
-//-----------------------------------------------------------------------------
 // ASSUMPTIONS
-//-----------------------------------------------------------------------------
-//
 // l_d_f <= 4
 // l_d1 == l_d2 == 1
 // l_attribs.m_padding[0] = l_attribs.m_padding[1]
@@ -95,9 +92,6 @@ uint get_attribs(in ByteAddressBuffer p_attrib_buffer, in uint p_byte_offset, ou
 groupshared float l_filter[N_FILTER][FILTER_SIZE];
 groupshared float l_input[N_INPUT][PAD_INPUT_SIZE];
 
-//-----------------------------------------------------------------------------
-// Entry point
-//-----------------------------------------------------------------------------
 [numthreads(1,18,18)]
 void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     uint3 p_gtid : SV_GroupThreadID, uint p_gi : SV_GroupIndex)
@@ -231,15 +225,15 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     if (cond2)
     {
         // Get bias value
-        // Do not add offset if shape_bias = [1, 1]        
+        // Do not add offset if shape_bias = [1, 1]
         float l_bias = 0.0;
 
         if (cond3)
         {
-            l_in_byte_offset_bias += FLOAT_SIZE * l_k2;            
-        }       
+            l_in_byte_offset_bias += FLOAT_SIZE * l_k2;
+        }
         l_bias = asfloat(l_tensors.Load(l_in_byte_offset_bias));
-        
+
 
         uint l_idx_output = l_out_shape[3] * l_i1 + l_i2 + l_k2 * l_out_shape[2] * l_out_shape[3];
         l_tensors.Store(l_out_byte_offset + FLOAT_SIZE * l_idx_output, asuint(l_sum +l_bias  ));
@@ -250,7 +244,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
             if (cond3)
             {
                 l_in_byte_offset_bias += FLOAT_SIZE;
-                
+
             }
             l_bias = asfloat(l_tensors.Load(l_in_byte_offset_bias));
             uint l_idx_output2 = l_idx_output + l_out_shape[2] * l_out_shape[3];

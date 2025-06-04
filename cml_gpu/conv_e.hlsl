@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -18,20 +18,17 @@
 #define l_out_ch 192
 #define l_in_ch 48
 #define l_d_f 3
-#define l_s1 1 
-#define l_s2 1 
-#define l_d1 1 
-#define l_d2 1 
-#define l_p1 1 
-#define l_p2 1 
+#define l_s1 1
+#define l_s2 1
+#define l_d1 1
+#define l_d2 1
+#define l_p1 1
+#define l_p2 1
 
 #define l_o1 (p_gid.x)
 #define l_o2 (p_gtid.y)
-#define l_o3 (p_gtid.x) 
+#define l_o3 (p_gtid.x)
 
-//-----------------------------------------------------------------------------
-// Entry point
-//-----------------------------------------------------------------------------
 [numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
 void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
              uint3 p_gtid : SV_GroupThreadID, uint p_gi : SV_GroupIndex)

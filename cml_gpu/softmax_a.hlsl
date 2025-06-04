@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -11,9 +11,6 @@
 // uint m_tensor_offset_1; // Output
 
 #define N_TENSORS 2
-//-----------------------------------------------------------------------------
-// Entry point
-//-----------------------------------------------------------------------------
 
 #define GROUP_SIZE 1
 #define Z_SIZE 32
@@ -31,7 +28,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     l_shape = asuint(l_tensors.Load4(l_byte_offset_tensor[0] + 4));
 
     for (uint l_i = 0; l_i < N_TENSORS; l_i++)
-    {     
+    {
         l_byte_offset_tensor[l_i] += 4 * (1 + 4);
     }
 

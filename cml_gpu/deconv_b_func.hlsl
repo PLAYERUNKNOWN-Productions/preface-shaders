@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 // Attributes specifically for this operation
 struct deconv_b_attribs_s
@@ -118,7 +118,7 @@ void deconv_b_func(uint3 p_gid, uint3 p_dtid, uint3 p_gtid, uint p_gi)
                     if (l_a_ind2 == 0 && l_a_ind3 == 0)
                     {
                         if (l_ind2 >= 0 && l_ind3 >= 0 && l_ind2 < l_d_i && l_ind3 < l_d_i)
-                        {                        
+                        {
                             float l_t1 = asfloat(l_tensors.Load(l_in_byte_offset_input + 4 * (uint)l_idx_input));
                             float l_t2 = l_filter1[l_j2];
 

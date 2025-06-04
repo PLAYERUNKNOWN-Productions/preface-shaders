@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "mb_procedural_common.hlsl"
@@ -6,18 +6,9 @@
 // TODO: move to common
 #include "../helper_shaders/mb_quadtree_common.hlsl"
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 // Push constants
 ConstantBuffer<cb_procedural_splat_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
-// Utility
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 // Uses Slope and concave
 
 float generate_tile_splat(float2 p_tile_coord,
@@ -70,7 +61,7 @@ float generate_tile_splat(float2 p_tile_coord,
     }
     // Desert ground texture
     else if(l_splat_index == 3)
-    {   
+    {
         return float(l_biome_mask == 7  // Tropical & Subtropical Grasslands, Savannas & Shrublands
                   || l_biome_mask == 12 // Mediterranean Forests, Woodlands & Scrub
                   || l_biome_mask == 13 // Deserts & Xeric Shrublands
@@ -94,10 +85,6 @@ float generate_tile_splat(float2 p_tile_coord,
     }
 
 }
-
-//-----------------------------------------------------------------------------
-// Compute shader
-//-----------------------------------------------------------------------------
 
 [numthreads(PROCEDURAL_SPLAT_THREADGROUP_SIZE, PROCEDURAL_SPLAT_THREADGROUP_SIZE, 1)]
 void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)

@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -54,13 +54,13 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     {
         l_inc *= l_dim[l_k];
     }
-        
+
     // total number of pairs of vectors x 3 (components)
     uint l_n = l_dim[0] * l_dim[1] * l_dim[2] * l_dim[3] * l_dim[4] * l_dim[5];
 
     // flattened index for this particular thread
     uint l_id = p_gid.x * GROUP_SIZE * GROUP_SIZE + p_gtid.y * GROUP_SIZE + p_gtid.x;
-    
+
     if (l_id < l_n)
     {
         uint l_remain = l_id;

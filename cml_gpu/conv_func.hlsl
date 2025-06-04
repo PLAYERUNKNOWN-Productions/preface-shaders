@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 // Attributes specifically for this operation
 struct conv_attribs_s
@@ -55,10 +55,7 @@ uint get_attribs(in ByteAddressBuffer p_attrib_buffer, in uint p_byte_offset, ou
 #define FLOAT_SIZE 4
 #define MAX_GROUPSHARED_FLOAT 8192
 
-//-----------------------------------------------------------------------------
 // ASSUMPTIONS
-//-----------------------------------------------------------------------------
-//
 // l_d_f <= 4
 // l_d1 == l_d2 == 1
 // l_attribs.m_padding[0] = l_attribs.m_padding[1]
@@ -116,7 +113,7 @@ void conv_func(uint3 p_gid, uint3 p_dtid, uint3 p_gtid, uint p_gi)
         l_filter[l_i+1] = l_buffer.y;
         l_filter[l_i+2] = l_buffer.z;
         l_filter[l_i+3] = l_buffer.w;
-    }  
+    }
     GroupMemoryBarrierWithGroupSync();
 
     if (l_i1 < l_out_shape[2] && l_i2 < l_out_shape[3])
@@ -126,7 +123,7 @@ void conv_func(uint3 p_gid, uint3 p_dtid, uint3 p_gtid, uint p_gi)
         // input channel
         for (uint l_k1 = 0; l_k1 < l_in_shape_filter[1]; l_k1++)
         {
-            // 2D filter 
+            // 2D filter
             for (uint l_j1 = 0; l_j1 < l_d_f; l_j1++)
             {
                 int l_ind1 = l_ind1_0 + l_j1;
@@ -139,7 +136,7 @@ void conv_func(uint3 p_gid, uint3 p_dtid, uint3 p_gtid, uint p_gi)
                 for (uint l_j2 = 0; l_j2 < l_d_f; l_j2++)
                 {
                     int l_ind2 = l_ind2_0 + l_j2;
-                
+
                     // If index is not outside input dimension
                     if (l_ind1_within && l_ind2 >= 0 && l_ind2 < l_d_i)
                     {
@@ -161,7 +158,7 @@ void conv_func(uint3 p_gid, uint3 p_dtid, uint3 p_gtid, uint p_gi)
         }
         float l_bias = asfloat(l_tensors.Load(l_in_byte_offset_bias));
 
-        uint l_idx_output = l_i2 + l_i1 * l_d_o + l_k2 * l_d_o * l_d_o; 
+        uint l_idx_output = l_i2 + l_i1 * l_d_o + l_k2 * l_d_o * l_d_o;
         l_tensors.Store(l_out_byte_offset + FLOAT_SIZE * l_idx_output, asuint(l_out + l_bias));
     }
 }

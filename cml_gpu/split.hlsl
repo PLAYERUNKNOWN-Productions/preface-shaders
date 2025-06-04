@@ -1,10 +1,10 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
 #include "cml_error.hlsl"
 
-// uint m_tensor_count;    // 
+// uint m_tensor_count;    //
 // uint m_tensor_offset_0; // Tensors
 // uint m_tensor_offset_1;
 // uint m_tensor_offset_2;
@@ -42,10 +42,6 @@
 #define MAX_TENSORS 32
 #define GROUP_SIZE 16
 
-//-----------------------------------------------------------------------------
-// Entry point
-//-----------------------------------------------------------------------------
-
 #define GROUP_SIZE 16
 
 [numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
@@ -80,8 +76,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     uint l_ratio[MAX_TENSORS - 1];
 
     // Save byte offsets, shapes, and flattened sizes
-    uint l_i;
-    for (l_i = 0; l_i < l_meta_data.m_tensor_count; l_i++)
+    for (uint l_i = 0; l_i < l_meta_data.m_tensor_count; l_i++)
     {
         uint l_rank = asuint(l_tensors.Load(l_byte_offset_tensor[l_i]));
 
@@ -107,7 +102,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     l_axis[l_axes_index] = 1;
     uint l_bin = 0;
 
-    for (l_i = 0; l_i < l_meta_data.m_attrib_count - 1; l_i++)
+    for (uint l_i = 0; l_i < l_meta_data.m_attrib_count - 1; l_i++)
     {
         l_ratio[l_i] = asuint(l_attributes.Load(l_meta_data.m_attrib_offset + 4 * (2 + l_i)));
     }
@@ -115,7 +110,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     uint l_boundary = 0;
     uint l_idx_adj;
 
-    for (l_i = 0; l_i < l_meta_data.m_tensor_count - 1; l_i++)
+    for (uint l_i = 0; l_i < l_meta_data.m_tensor_count - 1; l_i++)
     {
         l_boundary += l_ratio[l_i];
 
@@ -145,7 +140,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     if (l_tid_z < l_shape_tensor[0][1] && l_tid_y < l_shape_tensor[0][2] && l_tid_x < l_shape_tensor[0][3])
     {
         float l_out = asfloat(l_tensors.Load(l_byte_offset_tensor[0] + 4 * l_idx_in));
-    
+
         l_tensors.Store(l_byte_offset_tensor[l_bin] + 4 * l_idx_out, asuint(l_out));
     }
 }

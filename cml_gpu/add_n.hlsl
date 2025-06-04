@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -11,9 +11,6 @@
 // uint m_tensor_offset_3;
 // uint m_tensor_offset_4;
 
-//-----------------------------------------------------------------------------
-// Entry point
-//-----------------------------------------------------------------------------
 // UP TO 15 TENSORS CAN BE ADDED
 
 #define MAX_TENSORS 16
@@ -51,7 +48,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
         {
             uint4 l_in_shape_a;
             l_byte_offset_tensor[l_i] += tensor_shape(l_tensors, l_byte_offset_tensor[l_i], l_in_shape_a);
-    
+
             uint4 l_nbroadcast_x = uint4(1 - (l_in_shape_a[0] < l_out_shape[0]),
                                          1 - (l_in_shape_a[1] < l_out_shape[1]),
                                          1 - (l_in_shape_a[2] < l_out_shape[2]),

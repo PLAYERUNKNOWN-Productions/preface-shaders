@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 // Attributes specifically for this operation
 struct conv_b_attribs_s
@@ -63,10 +63,7 @@ uint get_attribs(in ByteAddressBuffer p_attrib_buffer, in uint p_byte_offset, ou
     #define GROUP_SIZE_Y GROUP_SIZE_AT_Y
 #endif
 
-//-----------------------------------------------------------------------------
 // ASSUMPTIONS
-//-----------------------------------------------------------------------------
-//
 // l_d_f <= 4
 // l_attribs.m_padding[0] = l_attribs.m_padding[1]
 // l_attribs.m_padding[2] = l_attribs.m_padding[3]

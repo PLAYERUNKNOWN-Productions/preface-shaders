@@ -1,19 +1,11 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
-
-//-----------------------------------------------------------------------------
-// Defines
-//-----------------------------------------------------------------------------
 
 #define KERNEL_RADIUS 4
 
 #define USE_DEPTH_SLOPE 1
 #define USE_ADAPTIVE_SAMPLING 0
-
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
 
 // Push constants
 ConstantBuffer<cb_push_gtao_blur_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
@@ -21,43 +13,31 @@ ConstantBuffer<cb_push_gtao_blur_t> g_push_constants : register(REGISTER_PUSH_CO
 // Group shared memory
 groupshared float2 g_ao_depth_cache[GTAO_THREAD_GROUP_SIZE * GTAO_THREAD_GROUP_SIZE + KERNEL_RADIUS * KERNEL_RADIUS];
 
-//-----------------------------------------------------------------------------
-// Helper functions
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
-float2 sample_ao_depth(float2 p_uv, uint p_depth_texture_srv, uint p_ao_texture_srv,
-                       float p_near, float p_far, float2 p_render_scale)
+float2 sample_ao_depth(float2 p_uv, uint p_depth_texture_srv, uint p_ao_texture_srv, float p_near, float p_far)
 {
-    // Get remapped uv
-    float2 l_remapped_uv = get_remapped_uv(p_uv, p_render_scale);
-
-    float l_depth = bindless_tex2d_sample_level(p_depth_texture_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], l_remapped_uv).r;
+    float l_depth = bindless_tex2d_sample_level(p_depth_texture_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], p_uv).r;
 
 #if HALF_RESOLUTION
-    float l_ao = bindless_tex2d_sample_level(p_ao_texture_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP], l_remapped_uv).r;
+    float l_ao = bindless_tex2d_sample_level(p_ao_texture_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP], p_uv).r;
 #else
-    float l_ao = bindless_tex2d_sample_level(p_ao_texture_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], l_remapped_uv).r;
+    float l_ao = bindless_tex2d_sample_level(p_ao_texture_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], p_uv).r;
 #endif
 
     return float2(l_ao, get_view_depth_from_depth(l_depth, p_near, p_far) * 0.01);
 }
 
-//-----------------------------------------------------------------------------
 float2 load_ao_depth_from_cache(int p_index)
 {
     float2 l_ao_depth = g_ao_depth_cache[p_index];
     return l_ao_depth;
 }
 
-//-----------------------------------------------------------------------------
 float2 load_ao_depth_from_cache_linear(int p_index_0, int p_index_1, float p_ratio)
 {
     float2 l_ao_depth = (g_ao_depth_cache[p_index_0] + g_ao_depth_cache[p_index_1]) * p_ratio;
     return l_ao_depth;
 }
 
-//-----------------------------------------------------------------------------
 struct center_pixel_data_t
 {
     int m_index;
@@ -65,7 +45,6 @@ struct center_pixel_data_t
     float m_sharpness;
 };
 
-//-----------------------------------------------------------------------------
 float cross_bilateral_weight(float p_r, float p_sample_depth, float p_depth_slope, center_pixel_data_t p_center)
 {
     const float l_blur_sigma = ((float)KERNEL_RADIUS + 1.0) * 0.5;
@@ -80,7 +59,6 @@ float cross_bilateral_weight(float p_r, float p_sample_depth, float p_depth_slop
     return exp2(-p_r * p_r * l_blur_falloff - l_delta_z * l_delta_z);
 }
 
-//-----------------------------------------------------------------------------
 void process_sample(float2 p_ao_z,
                     float p_r,
                     float p_depth_slope,
@@ -96,7 +74,6 @@ void process_sample(float2 p_ao_z,
     p_total_w += l_w;
 }
 
-//-----------------------------------------------------------------------------
 void process_radius(int p_r0,
                     int p_direction,
                     float p_depth_slope,
@@ -133,7 +110,6 @@ void process_radius(int p_r0,
 #endif
 }
 
-//-----------------------------------------------------------------------------
 #if USE_DEPTH_SLOPE
 void process_radius_with_depth_slope(int p_direction,
                                      center_pixel_data_t p_center,
@@ -153,7 +129,6 @@ void process_radius_with_depth_slope(int p_direction,
 }
 #endif
 
-//-----------------------------------------------------------------------------
 float compute_blur(int p_index, float2 p_ao_z, float p_blur_sharpness)
 {
     center_pixel_data_t l_center;
@@ -176,10 +151,6 @@ float compute_blur(int p_index, float2 p_ao_z, float p_blur_sharpness)
     return l_total_ao / l_total_w;
 }
 
-//-----------------------------------------------------------------------------
-// CS
-//-----------------------------------------------------------------------------
-
 #if BLUR_X
 [numthreads(GTAO_THREAD_GROUP_SIZE * GTAO_THREAD_GROUP_SIZE, 1, 1)]
 void cs_main(int3 p_group_thread_id : SV_GroupThreadID, uint3 p_dispatch_thread_id : SV_DispatchThreadID)
@@ -198,8 +169,7 @@ void cs_main(int3 p_group_thread_id : SV_GroupThreadID, uint3 p_dispatch_thread_
                                                                 g_push_constants.m_depth_texture_srv,
                                                                 g_push_constants.m_ao_texture_srv,
                                                                 l_camera.m_z_near,
-                                                                l_camera.m_z_far,
-                                                                l_camera.m_render_scale);
+                                                                l_camera.m_z_far);
     }
 
     if (p_group_thread_id.x >= GTAO_THREAD_GROUP_SIZE * GTAO_THREAD_GROUP_SIZE - KERNEL_RADIUS)
@@ -210,8 +180,7 @@ void cs_main(int3 p_group_thread_id : SV_GroupThreadID, uint3 p_dispatch_thread_
                                                                                     g_push_constants.m_depth_texture_srv,
                                                                                     g_push_constants.m_ao_texture_srv,
                                                                                     l_camera.m_z_near,
-                                                                                    l_camera.m_z_far,
-                                                                                    l_camera.m_render_scale);
+                                                                                    l_camera.m_z_far);
     }
 
     // Clamp out of bound samples that occur at image borders
@@ -219,8 +188,7 @@ void cs_main(int3 p_group_thread_id : SV_GroupThreadID, uint3 p_dispatch_thread_
                                                                             g_push_constants.m_depth_texture_srv,
                                                                             g_push_constants.m_ao_texture_srv,
                                                                             l_camera.m_z_near,
-                                                                            l_camera.m_z_far,
-                                                                            l_camera.m_render_scale);
+                                                                            l_camera.m_z_far);
 
     GroupMemoryBarrierWithGroupSync();
 
@@ -258,8 +226,7 @@ void cs_main(int3 p_group_thread_id : SV_GroupThreadID, uint3 p_dispatch_thread_
                                                                 g_push_constants.m_depth_texture_srv,
                                                                 g_push_constants.m_ao_texture_srv,
                                                                 l_camera.m_z_near,
-                                                                l_camera.m_z_far,
-                                                                l_camera.m_render_scale);
+                                                                l_camera.m_z_far);
     }
 
     if (p_group_thread_id.y >= GTAO_THREAD_GROUP_SIZE * GTAO_THREAD_GROUP_SIZE - KERNEL_RADIUS)
@@ -270,8 +237,7 @@ void cs_main(int3 p_group_thread_id : SV_GroupThreadID, uint3 p_dispatch_thread_
                                                                                     g_push_constants.m_depth_texture_srv,
                                                                                     g_push_constants.m_ao_texture_srv,
                                                                                     l_camera.m_z_near,
-                                                                                    l_camera.m_z_far,
-                                                                                    l_camera.m_render_scale);
+                                                                                    l_camera.m_z_far);
     }
 
     // Clamp out of bound samples that occur at image borders
@@ -279,8 +245,7 @@ void cs_main(int3 p_group_thread_id : SV_GroupThreadID, uint3 p_dispatch_thread_
                                                                             g_push_constants.m_depth_texture_srv,
                                                                             g_push_constants.m_ao_texture_srv,
                                                                             l_camera.m_z_near,
-                                                                            l_camera.m_z_far,
-                                                                            l_camera.m_render_scale);
+                                                                            l_camera.m_z_far);
 
     GroupMemoryBarrierWithGroupSync();
 

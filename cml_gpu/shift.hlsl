@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -16,7 +16,7 @@ uint get_index(uint4 p_shape, uint p_ind_1, uint p_ind_2, uint p_ind_3)
 int src_index(uint4 p_shape, uint p_ind_1, uint p_ind_2, uint p_ind_3)
 {
     uint l_xs = p_shape[1] / 5;
-    uint l_dir = p_ind_1 / l_xs; 
+    uint l_dir = p_ind_1 / l_xs;
     int l_src_ind_2 = 0, l_src_ind_3 = 0;
     uint l_valid = 0;
 

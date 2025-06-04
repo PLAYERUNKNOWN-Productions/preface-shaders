@@ -1,34 +1,17 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
-#ifndef MBSHADER_CML_SHADER_BUFFERS_H
-#define MBSHADER_CML_SHADER_BUFFERS_H
+#ifndef MB_CML_SHARED_BUFFERS_HLSL
+#define MB_CML_SHARED_BUFFERS_HLSL
 
 #include "../shared_shaders/mb_shared_common.hlsl"
 
 // This is HLSL shared with C implementation
 // Use of only shared functionality is permited!
 
-//-----------------------------------------------------------------------------
 // Define math types
-//-----------------------------------------------------------------------------
-
 #ifdef __cplusplus
 
-// Define types to match with C++ code
-#define float3x3 mb_math::float3x3
-#define float4x4 mb_math::float4x4
-#define float4x3 mb_math::float4x3
-#define float2 mb_math::float2
-#define float3 mb_math::float3
-#define float4 mb_math::float4
-#define int2 mb_math::int2
-#define int3 mb_math::int3
-#define int4 mb_math::int4
-#define uint2 mb_math::uint2
-#define uint3 mb_math::uint3
-#define uint4 mb_math::uint4
-#define uint uint32_t
-#define int int32_t
+#include "../shared_shaders/mb_shared_types_define.hlsl"
 
 // Define macro for passing structures as push constants
 #define RAL_PUSH_CONSTANTS(l_push_constants) sizeof(l_push_constants), &l_push_constants
@@ -40,15 +23,10 @@
 //! \todo DXC compiler currently does not support turning off cb packing, but it might in the future
 #pragma pack(push, 4)
 
-namespace mb_shader_buffers
+namespace mb_shared_buffers
 {
 #endif
 
-//-----------------------------------------------------------------------------
-// Constant buffers
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 struct cb_cml_meta_data_t
 {
     uint m_attrib_count;    // Number of attributes
@@ -102,8 +80,6 @@ struct cb_cml_meta_data_array_t
     cb_cml_meta_data_t m_data[256]; // Maximum CBV size is 65536. So maximum number is 65536 / 256 = 256.
 };
 
-//-----------------------------------------------------------------------------
-// Push constants
 struct cb_push_cml_t
 {
     uint m_meta_data_cbv;
@@ -114,30 +90,14 @@ struct cb_push_cml_t
     uint m_error_uav;
 };
 
-//-----------------------------------------------------------------------------
 // Undefine math types
-
 #ifdef __cplusplus
 };
 
 // Pop packing rules(see upper side of this file)
 #pragma pack(pop)
 
-// Undefine types to keep math types in a separate namespace
-#undef float3x3
-#undef float4x4
-#undef float4x3
-#undef float2
-#undef float3
-#undef float4
-#undef int2
-#undef int3
-#undef int4
-#undef uint2
-#undef uint3
-#undef uint4
-#undef uint
-#undef int
+#include "../shared_shaders/mb_shared_types_undefine.hlsl"
 #endif
 
-#endif // MBSHADER_CML_SHADER_BUFFERS_H
+#endif // MB_CML_SHARED_BUFFERS_HLSL

@@ -1,17 +1,12 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "mb_hdr_tone_mapping_common.hlsl"
 #include "mb_postprocess_vs.hlsl"
+#include "mb_color_correction.hlsl"
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
 ConstantBuffer<cb_push_exposure_fusion_final_combine_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
-// PS
-//-----------------------------------------------------------------------------
 float3 sample_blend(float2 p_texcoord)
 {
     return bindless_tex2d_sample_level(g_push_constants.m_blend_texture_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_CLAMP], p_texcoord, 0).rgb;
@@ -71,12 +66,15 @@ float4 ps_main(ps_input_t p_input) : SV_TARGET
     float l_blend = sample_blend(p_input.m_texcoord).r;
     float l_final_multiplier = max(l_blend, 0) / l_luminance;
 #endif
-    
+
     // This is a hack to prevent super dark pixels getting boosted by a lot and showing compression artifacts.
     float l_lerp_to_unity_threshold = 0.007;
     l_final_multiplier = l_luminance > l_lerp_to_unity_threshold ? l_final_multiplier :
         lerp(1.0, l_final_multiplier, (l_luminance / l_lerp_to_unity_threshold) * (l_luminance / l_lerp_to_unity_threshold));
 
     float3 l_texel_final = linear_to_gamma(tonemap_aces_fitted(l_exposed_color * l_final_multiplier));
+
+    l_texel_final = apply_color_correction(l_texel_final, g_push_constants.m_color_correction_lut_srv, g_push_constants.m_color_correction_lut_size);
+
     return float4(l_texel_final, 1.0);
 }

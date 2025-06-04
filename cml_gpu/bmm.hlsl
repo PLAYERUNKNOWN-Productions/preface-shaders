@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -34,7 +34,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     uint l_id3 = p_gid.x * GROUP_SIZE + p_gtid.x;
 
     if (l_id2 < l_sh_output[1] && l_id3 < l_sh_output[2])
-    {   
+    {
         float l_sum = 0;
         uint l_id_output = l_id1 * l_sh_output[1] * l_sh_output[2] + l_id2 * l_sh_output[2] + l_id3;
 

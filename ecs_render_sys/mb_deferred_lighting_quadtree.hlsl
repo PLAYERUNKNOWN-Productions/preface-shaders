@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #define MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE
 
@@ -6,23 +6,11 @@
 
 #include "../helper_shaders/mb_quadtree_common.hlsl"
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 // CBV
 ConstantBuffer<cb_push_deferred_lighting_t>     g_push_constants        : register(REGISTER_PUSH_CONSTANTS);
 
 #define GENERATE_TBN 1
 #include "mb_lighting.hlsl"
-
-//-----------------------------------------------------------------------------
-// Utility functions
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
-// CS
-//-----------------------------------------------------------------------------
 
 //#define MORTON_SWIZZLE
 
@@ -48,9 +36,10 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
     {
         return;
     }
-    
+
     RWTexture2D<float4> l_direct_lighting_rt                = ResourceDescriptorHeap[g_push_constants.m_direct_lighting_uav];
     RWTexture2D<float4> l_indirect_lighting_rt              = ResourceDescriptorHeap[g_push_constants.m_indirect_lighting_uav];
+    RWTexture2D<float2> l_velocity_rt                       = ResourceDescriptorHeap[g_push_constants.m_velocity_uav];
     Texture2D<uint2> l_visibility_buffer                    = ResourceDescriptorHeap[g_push_constants.m_visibility_buffer_srv];
     ConstantBuffer<cb_camera_t> l_camera                    = ResourceDescriptorHeap[g_push_constants.m_camera_cbv];
 
@@ -60,7 +49,7 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
     bool l_front_face = false;
     bool l_wind = false;
     bool l_wind_small = false;
-    unpack_instance_id_pixel_options(l_ids.x, l_instance_id, l_front_face, l_wind, l_wind_small);	
+    unpack_instance_id_pixel_options(l_ids.x, l_instance_id, l_front_face, l_wind, l_wind_small);
 
     // Get render instance
     StructuredBuffer<sb_render_instance_t> l_render_instance_buffer = ResourceDescriptorHeap[g_push_constants.m_render_instance_buffer_srv];
@@ -104,7 +93,8 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
         l_vertex_shader_result[1].m_position_ps,
         l_vertex_shader_result[2].m_position_ps,
         l_pixel_ndc,
-        g_push_constants.m_dst_resolution);
+        g_push_constants.m_dst_resolution,
+        l_camera.m_render_scale);
 
     float3 l_position_local_x_deriv     = interpolate_with_deriv(l_full_deriv, l_vertex_shader_result[0].m_position_local.x, l_vertex_shader_result[1].m_position_local.x, l_vertex_shader_result[2].m_position_local.x);
     float3 l_position_local_y_deriv     = interpolate_with_deriv(l_full_deriv, l_vertex_shader_result[0].m_position_local.y, l_vertex_shader_result[1].m_position_local.y, l_vertex_shader_result[2].m_position_local.y);
@@ -116,12 +106,17 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
     float3 l_surface_normal_ws          = interpolate(l_full_deriv, l_vertex_shader_result[0].m_surface_normal_ws, l_vertex_shader_result[1].m_surface_normal_ws, l_vertex_shader_result[2].m_surface_normal_ws);
     float  l_blend_mask                 = interpolate(l_full_deriv, l_vertex_shader_result[0].m_blend_mask, l_vertex_shader_result[1].m_blend_mask, l_vertex_shader_result[2].m_blend_mask);
 
-    float2 l_position_local         = float2(l_position_local_x_deriv[0], l_position_local_y_deriv[0]);
-    float2 l_position_local_ddx     = float2(l_position_local_x_deriv[1], l_position_local_y_deriv[1]);
-    float2 l_position_local_ddy     = float2(l_position_local_x_deriv[2], l_position_local_y_deriv[2]);
+    float2 l_position_local             = float2(l_position_local_x_deriv[0], l_position_local_y_deriv[0]);
+    float2 l_position_local_ddx         = float2(l_position_local_x_deriv[1], l_position_local_y_deriv[1]);
+    float2 l_position_local_ddy         = float2(l_position_local_x_deriv[2], l_position_local_y_deriv[2]);
     float3 l_position_ws_local          = float3(l_position_ws_local_x_deriv[0], l_position_ws_local_y_deriv[0], l_position_ws_local_z_deriv[0]);
     float3 l_position_ws_local_ddx      = float3(l_position_ws_local_x_deriv[1], l_position_ws_local_y_deriv[1], l_position_ws_local_z_deriv[1]);
     float3 l_position_ws_local_ddy      = float3(l_position_ws_local_x_deriv[2], l_position_ws_local_y_deriv[2], l_position_ws_local_z_deriv[2]);
+
+#if defined(MB_RENDER_VELOCITY_PASS_ENABLED)
+    float3 l_proj_pos_curr              = interpolate(l_full_deriv, l_vertex_shader_result[0].m_proj_pos_curr, l_vertex_shader_result[1].m_proj_pos_curr, l_vertex_shader_result[2].m_proj_pos_curr);
+    float3 l_proj_pos_prev              = interpolate(l_full_deriv, l_vertex_shader_result[0].m_proj_pos_prev, l_vertex_shader_result[1].m_proj_pos_prev, l_vertex_shader_result[2].m_proj_pos_prev);
+#endif
 
     ps_input_lighting_quadtree_t l_ps_lighting_input = (ps_input_lighting_quadtree_t)0;
     l_ps_lighting_input.m_position_ps = (float4)0; //unused in the vbuffering version of quadtree shading
@@ -129,9 +124,12 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
     l_ps_lighting_input.m_planet_normal_ws = l_planet_normal_ws;
     l_ps_lighting_input.m_surface_normal_ws = l_surface_normal_ws;
     l_ps_lighting_input.m_position_ws_local = l_position_ws_local;
-#if defined(MB_RENDER_SELECTION_PASS_ENABLED)
-    l_ps_lighting_input.m_entity_id = l_vertex_shader_result[0].m_entity_id;
+
+#if defined(MB_RENDER_VELOCITY_PASS_ENABLED)
+    l_ps_lighting_input.m_proj_pos_curr = l_proj_pos_curr;
+    l_ps_lighting_input.m_proj_pos_prev = l_proj_pos_prev;
 #endif
+
     l_ps_lighting_input.m_instance_id = l_instance_id;
     l_ps_lighting_input.m_blend_mask = l_blend_mask;
 
@@ -156,6 +154,7 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
         g_push_constants.m_dfg_texture_size,
         g_push_constants.m_specular_ld_mip_count,
         g_push_constants.m_light_list_cbv,
+        (float3x3)l_camera.m_align_ground_rotation,
         l_position_ws_local_ddx,
         l_position_ws_local_ddy,
         l_position_local_ddx,
@@ -165,4 +164,8 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
 
     l_direct_lighting_rt[l_pixel.xy] = l_direct_lighting;
     l_indirect_lighting_rt[l_pixel.xy] = l_indirect_lighting;
+
+#if defined(MB_RENDER_VELOCITY_PASS_ENABLED)
+    l_velocity_rt[l_pixel.xy] = get_motion_vector_without_jitter(float2(l_camera.m_resolution_x, l_camera.m_resolution_y), l_proj_pos_curr, l_proj_pos_prev, l_camera.m_jitter, l_camera.m_jitter_prev);
+#endif
 }

@@ -1,12 +1,12 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Copyright (C) 2016-2021, Intel Corporation 
-// 
+// Copyright (C) 2016-2021, Intel Corporation
+//
 // SPDX-License-Identifier: MIT
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// XeGTAO is based on GTAO/GTSO "Jimenez et al. / Practical Real-Time Strategies for Accurate Indirect Occlusion", 
+// XeGTAO is based on GTAO/GTSO "Jimenez et al. / Practical Real-Time Strategies for Accurate Indirect Occlusion",
 // https://www.activision.com/cdn/research/Practical_Real_Time_Strategies_for_Accurate_Indirect_Occlusion_NEW%20VERSION_COLOR.pdf
-// 
+//
 // Implementation:  Filip Strugar (filip.strugar@intel.com), Steve Mccalla <stephen.mccalla@intel.com>         (\_/)
 // Version:         1.02                                                                                      (='.'=)
 // Details:         https://github.com/GameTechDev/XeGTAO                                                     (")_(")
@@ -16,7 +16,7 @@
 // 1.01 (2021-09-02): Fix for depth going to inf for 'far' depth buffer values that are out of fp16 range
 // 1.02 (2021-09-03): More fast_acos use and made final horizon cos clamping optional (off by default): 3-4% perf boost
 // 1.10 (2021-09-03): Added a couple of heuristics to combat over-darkening errors in certain scenarios
-// 1.20 (2021-09-06): Optional normal from depth generation is now a standalone pass: no longer integrated into 
+// 1.20 (2021-09-06): Optional normal from depth generation is now a standalone pass: no longer integrated into
 //                    main XeGTAO pass to reduce complexity and allow reuse; also quality of generated normals improved
 // 1.21 (2021-09-28): Replaced 'groupshared'-based denoiser with a slightly slower multi-pass one where a 2-pass new
 //                    equals 1-pass old. However, 1-pass new is faster than the 1-pass old and enough when TAA enabled.
@@ -46,14 +46,14 @@ namespace XeGTAO
     #define Vector3         float3
     #define Vector2         float2
     #define Vector2i        int2
-    
+
 #endif
 
     // Global consts that need to be visible from both shader and cpp side
     #define XE_GTAO_DEPTH_MIP_LEVELS                    5                   // this one is hard-coded to 5 for now
     #define XE_GTAO_NUMTHREADS_X                        8                   // these can be changed
     #define XE_GTAO_NUMTHREADS_Y                        8                   // these can be changed
-    
+
     struct GTAOConstants
     {
         Vector2i                ViewportSize;
@@ -78,7 +78,7 @@ namespace XeGTAO
         float                   ThinOccluderCompensation;
         float                   DepthMIPSamplingOffset;
         int                     NoiseIndex;                         // frameIndex % 64 if using TAA or 0 otherwise
-        
+
         // input output textures for the first pass (XeGTAO_PrefilterDepths16x16)
         uint                    SrcRawDepth;         // SRV: source depth buffer data (in NDC space in DirectX)
         uint                    OutWorkingDepthMIP0; // UAV: output viewspace depth MIP (these are views into SrcWorkingDepth MIP levels)
@@ -89,12 +89,12 @@ namespace XeGTAO
 
         // input output textures for the second pass (XeGTAO_MainPass)
         uint                    SrcWorkingDepth;     // SRV: viewspace depth with MIPs, output by XeGTAO_PrefilterDepths16x16 and consumed by XeGTAO_MainPass
-        uint                    SrcNormalmap;        // SRV: source normal map (if used)
+        //uint                    SrcNormalmap;        // SRV: source normal map (if used) - Commented out because we use XE_GTAO_GENERATE_NORMALS_INPLACE
         uint                    SrcHilbertLUT;       // SRV: hilbert lookup table  (if any)
         uint                    OutWorkingAOTerm;    // UAV: output AO term (includes bent normals if enabled - packed as R11G11B10 scaled by AO)
         uint                    OutWorkingEdges;     // UAV: output depth-based edges used by the denoiser
-        uint                    OutNormalmap;        // UAV: output viewspace normals if generating from depth
-        
+        //uint                    OutNormalmap;        // UAV: output viewspace normals if generating from depth - Commented out because we use XE_GTAO_GENERATE_NORMALS_INPLACE
+
         // input output textures for the third pass (XeGTAO_Denoise)
         uint                    SrcWorkingAOTerm;    // SRV: coming from previous pass
         uint                    SrcWorkingEdges;     // SRV: coming from previous pass
@@ -122,7 +122,7 @@ namespace XeGTAO
     #define XE_GTAO_USE_DEFAULT_CONSTANTS 0
     #endif
 
-    // some constants reduce performance if provided as dynamic values; if these constants are not required to be dynamic and they match default values, 
+    // some constants reduce performance if provided as dynamic values; if these constants are not required to be dynamic and they match default values,
     // set XE_GTAO_USE_DEFAULT_CONSTANTS and the code will compile into a more efficient shader
     #define XE_GTAO_DEFAULT_RADIUS_MULTIPLIER               (1.457f  )  // allows us to use different value as compared to ground truth radius to counter inherent screen space biases
     #define XE_GTAO_DEFAULT_FALLOFF_RANGE                   (0.615f  )  // distant samples contribute less
@@ -138,7 +138,7 @@ namespace XeGTAO
     #define XE_HILBERT_WIDTH    ( (1U << XE_HILBERT_LEVEL) )
     #define XE_HILBERT_AREA     ( XE_HILBERT_WIDTH * XE_HILBERT_WIDTH )
     inline uint HilbertIndex( uint posX, uint posY )
-    {   
+    {
         uint index = 0U;
         for( uint curLevel = XE_HILBERT_WIDTH/2U; curLevel > 0U; curLevel /= 2U )
         {
@@ -173,7 +173,7 @@ namespace XeGTAO
         float       RadiusMultiplier                    = XE_GTAO_DEFAULT_RADIUS_MULTIPLIER;
         float       FalloffRange                        = XE_GTAO_DEFAULT_FALLOFF_RANGE;
         float       SampleDistributionPower             = XE_GTAO_DEFAULT_SAMPLE_DISTRIBUTION_POWER;
-        float       ThinOccluderCompensation            = XE_GTAO_DEFAULT_THIN_OCCLUDER_COMPENSATION;    
+        float       ThinOccluderCompensation            = XE_GTAO_DEFAULT_THIN_OCCLUDER_COMPENSATION;
         float       FinalValuePower                     = XE_GTAO_DEFAULT_FINAL_VALUE_POWER;
         float       DepthMIPSamplingOffset              = XE_GTAO_DEFAULT_DEPTH_MIP_SAMPLING_OFFSET;
     };
@@ -221,7 +221,7 @@ namespace XeGTAO
     inline bool GTAOImGuiSettings( XeGTAO::GTAOSettings & settings )
     {
         bool hadChanges = false;
-    
+
         ImGui::PushItemWidth( 120.0f );
 
         ImGui::Text( "Performance/quality settings:" );

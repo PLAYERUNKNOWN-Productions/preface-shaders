@@ -1,21 +1,12 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "../helper_shaders/mb_quadtree_common.hlsl"
 #include "../ecs_surface_sys/mb_procedural_common.hlsl"
 #include "mb_grass_common.hlsl"
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 ConstantBuffer<cb_push_grass_patch_preparation_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
-// Helper functions
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 uint4 get_tile_vertex_buffer_indices(uint2 vertex_index, uint tile_vertex_resolution, uint tile_index)
 {
     uint4 indices;
@@ -37,7 +28,6 @@ uint4 get_tile_vertex_buffer_indices(uint2 vertex_index, uint tile_vertex_resolu
     return indices;
 }
 
-//-----------------------------------------------------------------------------
 float3 get_tile_data(StructuredBuffer<float3> buffer, uint4 indices, float2 lerp_factors)
 {
     float3 data_00 = buffer[indices.x]; // tl
@@ -50,8 +40,7 @@ float3 get_tile_data(StructuredBuffer<float3> buffer, uint4 indices, float2 lerp
     return data;
 }
 
-//-----------------------------------------------------------------------------
-uint hash(uint x) 
+uint hash(uint x)
 {
     x += (x << 10u);
     x ^= (x >> 6u);
@@ -61,7 +50,6 @@ uint hash(uint x)
     return x;
 }
 
-//-----------------------------------------------------------------------------
 // Generates a [0, 1] float using a hash-based LCG
 float rand(uint seed, uint index)
 {
@@ -75,10 +63,6 @@ float rand(uint seed, uint index)
     // Convert to a float in the range [0, 1]
     return float(seed) / float(0xFFFFFFFFu);
 }
-
-//-----------------------------------------------------------------------------
-// Compute shader
-//-----------------------------------------------------------------------------
 
 [numthreads(MB_GRASS_PATCH_THREADGROUP_SIZE, 1, 1)]
 void cs_main(uint3 dispatch_thread_id : SV_DispatchThreadID)
@@ -241,7 +225,7 @@ void cs_main(uint3 dispatch_thread_id : SV_DispatchThreadID)
     grass_biome_height *= saturate(1.0 - grass_probability);
 
     // Get tile vertex buffer indices and lerp factors
-    uint2 index = (uint2)prepared_data.m_uv; 
+    uint2 index = (uint2)prepared_data.m_uv;
     float2 lerp_factors = prepared_data.m_uv - float2(index);
     uint4 indices = get_tile_vertex_buffer_indices(index, g_push_constants.m_tile_vertex_resolution, prepared_data.m_tile_index);
 

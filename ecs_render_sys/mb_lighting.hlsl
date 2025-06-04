@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #ifndef MB_LIGHTING_COMMON_H
 #define MB_LIGHTING_COMMON_H
@@ -17,7 +17,6 @@
 #   define PIXEL_SHADER_INPUT_NOINTERP(type_and_name, semantic) nointerpolation type_and_name : semantic
 #endif
 
-//-----------------------------------------------------------------------------
 struct ps_input_lighting_quadtree_t
 {
     PIXEL_SHADER_INPUT(float4 m_position_ps         , SV_POSITION);
@@ -25,6 +24,10 @@ struct ps_input_lighting_quadtree_t
     PIXEL_SHADER_INPUT(float3 m_planet_normal_ws    , TEXCOORD1);
     PIXEL_SHADER_INPUT(float3 m_surface_normal_ws   , TEXCOORD2);
     PIXEL_SHADER_INPUT(float3 m_position_ws_local   , TEXCOORD3);
+#if defined(MB_RENDER_VELOCITY_PASS_ENABLED)
+    PIXEL_SHADER_INPUT(float3 m_proj_pos_curr       , POSITION0);
+    PIXEL_SHADER_INPUT(float3 m_proj_pos_prev       , POSITION1);
+#endif
 #if defined(MB_RENDER_SELECTION_PASS_ENABLED)
     PIXEL_SHADER_INPUT(uint m_entity_id             , TEXCOORD4);
 #endif
@@ -32,14 +35,13 @@ struct ps_input_lighting_quadtree_t
     PIXEL_SHADER_INPUT(float m_blend_mask           , TEXCOORD6);
 };
 
-//-----------------------------------------------------------------------------
 struct ps_input_lighting_t
 {
     PIXEL_SHADER_INPUT(             float4 m_position_ps          , SV_POSITION);
     PIXEL_SHADER_INPUT(             float3 m_normal               , NORMAL0);
     PIXEL_SHADER_INPUT(             float2 m_texcoord0            , TEXCOORD0);
     PIXEL_SHADER_INPUT(             float3 m_position_ws_local    , POSITION0);
-#if (GENERATE_TBN == 0)  
+#if (GENERATE_TBN == 0)
     PIXEL_SHADER_INPUT(             float3 m_tangent              , TANGENT0);
     PIXEL_SHADER_INPUT(             float3 m_binormal             , BINORMAL0);
 #endif
@@ -47,18 +49,19 @@ struct ps_input_lighting_t
     PIXEL_SHADER_INPUT_NOINTERP(    uint m_material_buffer_srv    , ID1);
     PIXEL_SHADER_INPUT_NOINTERP(    uint m_material_index         , ID2);
 #if defined(MB_RENDER_VELOCITY_PASS_ENABLED)
-    PIXEL_SHADER_INPUT(             float4 m_velocity_data        , POSITION1);
+    PIXEL_SHADER_INPUT(             float3 m_proj_pos_curr        , POSITION1);
+    PIXEL_SHADER_INPUT(             float3 m_proj_pos_prev        , POSITION2);
 #endif
 #if defined(MB_ALPHA_TEST)
     PIXEL_SHADER_INPUT_NOINTERP(    uint m_alpha_mask_texture_srv , ID3);
     PIXEL_SHADER_INPUT_NOINTERP(    float m_alpha_cutoff          , ID4);
+    PIXEL_SHADER_INPUT_NOINTERP(    float m_mip_lod_bias          , ID5);
 #endif
 #if defined(MB_RENDER_SELECTION_PASS_ENABLED)
     PIXEL_SHADER_INPUT(             uint m_entity_id              , TEXCOORD3);
 #endif
 };
 
-//-----------------------------------------------------------------------------
 float4 sample_texture_with_feedback(
     uint p_texture_srv,
     uint p_residency_buffer_srv,
@@ -69,6 +72,8 @@ float4 sample_texture_with_feedback(
 #if defined(MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE)
     float2 p_uv_ddx,
     float2 p_uv_ddy,
+#else
+    float p_mip_lod_bias,
 #endif //MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE
     float4 p_default_val = 0)
 {
@@ -78,6 +83,7 @@ float4 sample_texture_with_feedback(
     MB_SCALARIZE_START(p_texture_srv)
 #endif
 
+    SamplerState l_sampler = (SamplerState)SamplerDescriptorHeap[SAMPLER_ANISO16_WRAP];
     if (p_residency_buffer_srv != RAL_NULL_BINDLESS_INDEX)
     {
         l_result = bindless_tex2d_sample_with_feedback(
@@ -85,26 +91,24 @@ float4 sample_texture_with_feedback(
             p_residency_buffer_srv,
             p_sampler_feedback_uav,
             p_residency_buffer_dim,
-            (SamplerState)SamplerDescriptorHeap[SAMPLER_ANISO16_WRAP],
+            l_sampler,
             p_uv,
 #if defined(MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE)
             p_uv_ddx,
             p_uv_ddy,
+#else
+            p_mip_lod_bias,
 #endif //MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE
             p_default_val,
             (uint2)p_position_cs.xy);
     }
     else
     {
-        l_result = bindless_tex2d_sample(
-            p_texture_srv,
-            (SamplerState)SamplerDescriptorHeap[SAMPLER_ANISO16_WRAP], 
-            p_uv, 
 #if defined(MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE)
-            p_uv_ddx,
-            p_uv_ddy,
+        l_result = bindless_tex2d_sample(p_texture_srv, l_sampler, p_uv, p_uv_ddx, p_uv_ddy, p_default_val);
+#else
+        l_result = bindless_tex2d_sample_bias(p_texture_srv, l_sampler, p_uv, p_mip_lod_bias, p_default_val);
 #endif //MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE
-            p_default_val);
     }
 
 #if defined(MB_SCALARIZE_PBR_MATERIAL_SAMPLING)
@@ -114,13 +118,14 @@ float4 sample_texture_with_feedback(
     return l_result;
 }
 
-//-----------------------------------------------------------------------------
 float4 sample_texture(
     uint p_texture_srv,
     float2 p_uv,
 #if defined(MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE)
     float2 p_uv_ddx,
     float2 p_uv_ddy,
+#else
+    float p_mip_lod_bias,
 #endif //MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE
     float4 p_default_val = 0)
 {
@@ -130,15 +135,12 @@ float4 sample_texture(
     MB_SCALARIZE_START(p_texture_srv)
 #endif
 
-    l_result = bindless_tex2d_sample(
-        p_texture_srv,
-        (SamplerState) SamplerDescriptorHeap[SAMPLER_ANISO16_WRAP],
-        p_uv,
+    SamplerState l_sampler = (SamplerState)SamplerDescriptorHeap[SAMPLER_ANISO16_WRAP];
 #if defined(MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE)
-        p_uv_ddx,
-        p_uv_ddy,
+    l_result = bindless_tex2d_sample(p_texture_srv, l_sampler, p_uv, p_uv_ddx, p_uv_ddy, p_default_val);
+#else
+    l_result = bindless_tex2d_sample_bias(p_texture_srv, l_sampler, p_uv, p_mip_lod_bias, p_default_val);
 #endif //MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE
-        p_default_val);
 
 #if defined(MB_SCALARIZE_PBR_MATERIAL_SAMPLING)
     MB_SCALARIZE_END
@@ -147,7 +149,6 @@ float4 sample_texture(
     return l_result;
 }
 
-//-----------------------------------------------------------------------------
 void get_pbr_parameters(
     sb_geometry_pbr_material_t p_pbr_material,
     float2 p_uv,
@@ -155,6 +156,8 @@ void get_pbr_parameters(
 #if defined(MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE)
     float2 p_uv_ddx,
     float2 p_uv_ddy,
+#else
+    float p_mip_lod_bias,
 #endif //MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE
     out float4 p_base_color_texture,
     out float2 p_normal_texture,
@@ -172,6 +175,8 @@ void get_pbr_parameters(
 #if defined(MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE)
         p_uv_ddx,
         p_uv_ddy,
+#else
+        p_mip_lod_bias,
 #endif //MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE
         float4(1.0f, 1.0f, 1.0f, 1.0f));
 #else
@@ -181,6 +186,8 @@ void get_pbr_parameters(
 #if defined(MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE)
         p_uv_ddx,
         p_uv_ddy,
+#else
+        p_mip_lod_bias,
 #endif //MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE
         float4(1.0f, 1.0f, 1.0f, 1.0f));
 #endif
@@ -196,6 +203,8 @@ void get_pbr_parameters(
 #if defined(MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE)
         p_uv_ddx,
         p_uv_ddy,
+#else
+        p_mip_lod_bias,
 #endif //MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE
         float4(0.5f, 0.5f, 1.0, 0)).rg;
 #else
@@ -205,6 +214,8 @@ void get_pbr_parameters(
 #if defined(MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE)
         p_uv_ddx,
         p_uv_ddy,
+#else
+        p_mip_lod_bias,
 #endif //MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE
         float4(0.5f, 0.5f, 1.0, 0)).rg;
 #endif
@@ -220,6 +231,8 @@ void get_pbr_parameters(
 #if defined(MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE)
         p_uv_ddx,
         p_uv_ddy,
+#else
+        p_mip_lod_bias,
 #endif //MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE
         float4(1.0f, 1.0f, 1.0f, 1.0f)).bg;
 #else
@@ -229,6 +242,8 @@ void get_pbr_parameters(
 #if defined(MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE)
         p_uv_ddx,
         p_uv_ddy,
+#else
+        p_mip_lod_bias,
 #endif //MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE
         float4(1.0f, 1.0f, 1.0f, 1.0f)).bg;
 #endif
@@ -244,6 +259,8 @@ void get_pbr_parameters(
 #if defined(MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE)
         p_uv_ddx,
         p_uv_ddy,
+#else
+        p_mip_lod_bias,
 #endif //MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE
         float4(1.0f, 1.0f, 1.0f, 1.0f));
 #else
@@ -253,12 +270,13 @@ void get_pbr_parameters(
 #if defined(MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE)
         p_uv_ddx,
         p_uv_ddy,
+#else
+        p_mip_lod_bias,
 #endif //MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE
         float4(1.0f, 1.0f, 1.0f, 1.0f));
 #endif
 }
 
-//-----------------------------------------------------------------------------
 void calc_lighting_params(
     sb_geometry_pbr_material_t p_pbr_material,
     float3 p_position_ws_local,
@@ -302,7 +320,7 @@ void calc_lighting_params(
 #if GENERATE_TBN == 1
     // When back-facing - flip UV to get correct tangent space
     l_tbn = build_tbn(
-        normalize(p_normal), 
+        normalize(p_normal),
         p_front_face ? p_uv : -p_uv
 #   if defined(MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE)
         , p_position_ddx
@@ -333,7 +351,6 @@ void calc_lighting_params(
     p_specular_f0 = base_color_to_specular_f0(l_base_color, l_metallic);
 }
 
-//-----------------------------------------------------------------------------
 void calc_lighting(
     float3 p_position_ws_local,
     float3 p_normal_ws,
@@ -351,8 +368,9 @@ void calc_lighting(
     uint p_specular_ld_texture_srv,
     uint p_dfg_texture_size,
     uint p_specular_ld_mip_count,
-    uint p_global_shadow_map_srv, 
+    uint p_global_shadow_map_srv,
     float4x4 p_gsm_camera_view_local_proj,
+    float3x3 p_align_ground_rotation,
     out float3 p_direct_lighting,
     out float3 p_indirect_lighting)
 {
@@ -385,11 +403,10 @@ void calc_lighting(
         p_exposure_value,
         p_dfg_texture_srv, p_diffuse_ld_texture_srv, p_specular_ld_texture_srv,
         p_dfg_texture_size, p_specular_ld_mip_count,
-        p_light_list, p_planet_normal);
+        p_light_list, p_planet_normal, (float3x3)p_align_ground_rotation);
 #endif
 }
 
-//-----------------------------------------------------------------------------
 void calc_lighting_params_quadtree(
     terrain_material_t p_material,
     float3 p_position_ws_local,         //p_input.m_position_ws_local
@@ -408,7 +425,7 @@ void calc_lighting_params_quadtree(
     out float3 p_specular_f0,
     out float p_ao)
 {
-    float3x3 l_tbn = build_tbn(	normalize(p_surface_normal_ws), 
+    float3x3 l_tbn = build_tbn(	normalize(p_surface_normal_ws),
                                 p_position_local
 #if defined(MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE)
                                 , p_position_ddx
@@ -420,7 +437,7 @@ void calc_lighting_params_quadtree(
 #endif //MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE
                                 );
     p_normal_ws = normalize(mul(p_material.m_normal_ts, l_tbn));
-    p_roughness = p_material.m_roughness;   
+    p_roughness = p_material.m_roughness;
 
     // Diffuse color
     p_diffuse_reflectance = base_color_to_diffuse_reflectance(p_material.m_base_color, p_metallic);
@@ -438,7 +455,6 @@ bool alpha_test(
     return (p_opacity - (1.f - l_clip_fade)) < 0.f;
 }
 
-//-----------------------------------------------------------------------------
 void lighting_pixel_shader_quadtree(
     ps_input_lighting_quadtree_t p_input,
     sb_quadtree_material_t p_quadtree_material,
@@ -454,13 +470,14 @@ void lighting_pixel_shader_quadtree(
     uint p_dfg_texture_size,
     uint p_specular_ld_mip_count,
     uint p_light_list_cbv,
+    float3x3 p_align_ground_rotation,
 #if defined(MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE)
     float3 p_position_ddx,                              //ddx of argument passed to parameter p_position_ws_local
     float3 p_position_ddy,                              //ddy of argument passed to parameter p_position_ws_local
     float2 p_uv_ddx,                                    //ddx of argument passed to parameter p_uv
     float2 p_uv_ddy,                                    //ddy of argument passed to parameter p_uv
-#endif //MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE    
-    out float4 p_direct_lighting_result, 
+#endif //MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE
+    out float4 p_direct_lighting_result,
     out float4 p_indirect_lighting_result)
 {
     float2 l_tile_uv = tile_position_to_tile_uv(p_input.m_position_local);
@@ -476,7 +493,7 @@ void lighting_pixel_shader_quadtree(
     // Lerp tangent space normal to "up" direction
     // In the last mip levels avg normal can be different from (0, 0, 1)
     // It can result in lighting gaps on the edge of the quadtree
-    l_material.m_normal_ts = lerp(float3(0, 0, 1.0f), l_material.m_normal_ts, saturate((p_tile.m_tile_level - 12.0f) / (2.0f)));
+    l_material.m_normal_ts = lerp(float3(0, 0, 1.0f), l_material.m_normal_ts, saturate((p_tile.m_basic_data.m_tile_level - 12.0f) / (2.0f)));
     l_material.m_normal_ts = normalize(l_material.m_normal_ts);
 
     float l_metallic = MB_QUADTREE_METALLIC_DEFAULT;
@@ -522,12 +539,13 @@ void lighting_pixel_shader_quadtree(
         p_specular_ld_texture_srv,
         p_dfg_texture_size,
         p_specular_ld_mip_count,
-        p_gsm_srv, 
-        p_gsm_camera_view_local_proj, 
+        p_gsm_srv,
+        p_gsm_camera_view_local_proj,
+        p_align_ground_rotation,
         l_direct_lighting,
         l_indirect_lighting);
 
-    p_direct_lighting_result = float4(pack_lighting(l_direct_lighting), 0);
+    p_direct_lighting_result = float4(pack_lighting(l_direct_lighting), 1);
     p_indirect_lighting_result = float4(pack_lighting(l_indirect_lighting), 0);
 
     // When raytracing is used for diffuse GI - no need to compute indirect lighting
@@ -542,7 +560,7 @@ void lighting_pixel_shader_quadtree(
 }
 
 #define NUM_LOD_DEBUG_COLORS 5
-static const float3 lod_debug_colors[NUM_LOD_DEBUG_COLORS] = 
+static const float3 lod_debug_colors[NUM_LOD_DEBUG_COLORS] =
 {
     float3(1.0f, 0.0f, 0.0f),   // Red
     float3(0.0f, 1.0f, 0.0f),   // Green
@@ -551,10 +569,9 @@ static const float3 lod_debug_colors[NUM_LOD_DEBUG_COLORS] =
     float3(0.56f, 0.0f, 1.0f),  // Violet
 };
 
-//-----------------------------------------------------------------------------
 bool lighting_pixel_shader(
     ps_input_lighting_t p_input,
-    float3 p_camera_position_ws_local,
+    ConstantBuffer<cb_camera_t> p_camera,
     uint p_shadow_caster_count,
     uint p_shadow_caster_srv,
     uint p_gsm_srv,
@@ -577,7 +594,7 @@ bool lighting_pixel_shader(
 #if defined(DEBUG_LOD)
     uint p_lod_index,
 #endif
-    out float4 p_direct_lighting_result, 
+    out float4 p_direct_lighting_result,
     out float4 p_indirect_lighting_result)
 {
     float4 l_base_color_texture = (float4)0;
@@ -591,6 +608,8 @@ bool lighting_pixel_shader(
 #if defined(MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE)
         p_uv_ddx,
         p_uv_ddy,
+#else
+        p_camera.m_mip_lod_bias,
 #endif //MB_COMPUTE_MANUAL_PARTIAL_DERIVATIVE
         l_base_color_texture,
         l_normal_texture,
@@ -619,7 +638,7 @@ bool lighting_pixel_shader(
         p_input.m_tangent,
         p_input.m_binormal,
 #endif //(GENERATE_TBN == 0)
-        p_camera_position_ws_local,
+        p_camera.m_camera_pos,
         p_front_face,
         l_base_color_texture,
         l_normal_texture,
@@ -659,6 +678,7 @@ bool lighting_pixel_shader(
         p_specular_ld_mip_count,
         p_gsm_srv,
         p_gsm_camera_view_local_proj,
+        (float3x3)p_camera.m_align_ground_rotation,
         l_direct_lighting,
         l_indirect_lighting);
 
@@ -703,7 +723,6 @@ bool lighting_pixel_shader(
     return true;
 }
 
-//-----------------------------------------------------------------------------
 ps_input_lighting_quadtree_t lighting_vertex_shader_quadtree(
     uint p_vertex_id,
     sb_render_item_t p_render_item,
@@ -725,7 +744,7 @@ ps_input_lighting_quadtree_t lighting_vertex_shader_quadtree(
 #if defined(TERRAIN_BLENDING)
     bool l_position_moved = false;
 
-    // Move vertives to match neighboring tiles
+    // Move vertices to match neighboring tiles
     terrain_blend_mask_vertex(l_tile,
                               l_vertex_resolution,
                               l_tile_position,
@@ -773,17 +792,22 @@ ps_input_lighting_quadtree_t lighting_vertex_shader_quadtree(
     l_result.m_position_local       = l_tile_position;
     l_result.m_planet_normal_ws     = l_terrain_sample.m_planet_normal_ws;
     l_result.m_surface_normal_ws    = l_terrain_sample.m_surface_normal_ws;
-#if defined(MB_RENDER_SELECTION_PASS_ENABLED)
-    l_result.m_entity_id            = l_tile.m_entity_id;
-#endif
     l_result.m_position_ws_local    = l_terrain_sample.m_position_ws_local;
+#if defined(MB_RENDER_VELOCITY_PASS_ENABLED)
+    float4 l_pos_ps_prev            = mul(l_pos_ws_local, p_camera.m_view_proj_local_prev);
+
+    l_result.m_proj_pos_curr        = l_pos_ps.xyw;
+    l_result.m_proj_pos_prev        = l_pos_ps_prev.xyw;
+#endif
+#if defined(MB_RENDER_SELECTION_PASS_ENABLED)
+    l_result.m_entity_id            = l_tile.m_basic_data.m_entity_id;
+#endif
     l_result.m_instance_id          = p_instance_id;
     l_result.m_blend_mask           = l_blend_mask;
 
     return l_result;
 }
 
-//-----------------------------------------------------------------------------
 ps_input_lighting_t lighting_vertex_shader(
     uint p_index,
     sb_render_item_t p_render_item,
@@ -791,12 +815,21 @@ ps_input_lighting_t lighting_vertex_shader(
     bool p_wind,
     bool p_wind_small,
     uint p_time,
+    uint p_time_prev,
     ConstantBuffer<cb_camera_t> p_camera,
     uint p_instance_id)
 {
     mesh_vertex_t l_mesh_vertex = (mesh_vertex_t)0;
     get_vertex_mesh_position(p_index, p_render_item, l_mesh_vertex);
     get_vertex_mesh_other(p_index, p_render_item, l_mesh_vertex);
+
+#if defined(MB_RENDER_VELOCITY_PASS_ENABLED)
+    float3 l_vertex_position_prev = l_mesh_vertex.m_position;
+    if(p_wind)
+    {
+        l_vertex_position_prev = apply_wind_to_position(l_vertex_position_prev, p_render_instance.m_transform, p_time_prev, p_camera, p_wind_small);
+    }
+#endif
 
     if(p_wind)
     {
@@ -828,14 +861,11 @@ ps_input_lighting_t lighting_vertex_shader(
     l_result.m_material_buffer_srv  = p_render_item.m_material_buffer_srv;
     l_result.m_material_index       = p_render_item.m_material_index;
 #if defined(MB_RENDER_VELOCITY_PASS_ENABLED)
-    // Store screen position in the currect frame
-    l_result.m_velocity_data.xy     = l_pos_ps.xy;
+    float3 l_pos_ls_prev = mul(float4(l_vertex_position_prev, 1.0f), p_render_instance.m_transform_prev);
+    float4 l_pos_ps_prev = mul(float4(l_pos_ls_prev, 1.0f), p_camera.m_view_proj_local_prev);
 
-    float3 l_pos_ls_prev = mul(float4(l_mesh_vertex.m_position.xyz, 1.0f), p_render_instance.m_transform_prev);
-    float4 l_pos_ps_prev = mul(float4(l_pos_ls_prev, 1.0f), l_vp);
-
-    // Store screen position in the previous frame
-    l_result.m_velocity_data.zw     = l_pos_ps_prev.xy;
+    l_result.m_proj_pos_curr = l_pos_ps.xyw;
+    l_result.m_proj_pos_prev = l_pos_ps_prev.xyw;
 #endif
 #if defined(MB_ALPHA_TEST)
     StructuredBuffer<sb_geometry_pbr_material_t> l_pbr_material_list = ResourceDescriptorHeap[p_render_item.m_material_buffer_srv];
@@ -843,6 +873,7 @@ ps_input_lighting_t lighting_vertex_shader(
 
     l_result.m_alpha_mask_texture_srv = l_pbr_material.m_alpha_mask_texture_srv;
     l_result.m_alpha_cutoff           = l_pbr_material.m_alpha_cutoff;
+    l_result.m_mip_lod_bias           = p_camera.m_mip_lod_bias;
 #endif
 #if defined(MB_RENDER_SELECTION_PASS_ENABLED)
     l_result.m_entity_id            = p_render_instance.m_entity_id;

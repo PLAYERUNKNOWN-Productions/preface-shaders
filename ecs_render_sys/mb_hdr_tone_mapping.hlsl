@@ -1,12 +1,9 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "mb_lighting_common.hlsl"
 #include "mb_hdr_tone_mapping_common.hlsl"
-
-//-----------------------------------------------------------------------------
-// Structures
-//-----------------------------------------------------------------------------
+#include "mb_color_correction.hlsl"
 
 struct ps_input_t
 {
@@ -14,19 +11,7 @@ struct ps_input_t
     float2 m_texcoord : TEXCOORD0;
 };
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
-#if EYE_ADAPTATION
-ConstantBuffer<cb_push_tone_mapping_eye_adaptation_t>   g_push_constants    : register(REGISTER_PUSH_CONSTANTS);
-#else // fixed exposure
-ConstantBuffer<cb_push_tone_mapping_fixed_exposure_t>   g_push_constants    : register(REGISTER_PUSH_CONSTANTS);
-#endif
-
-//-----------------------------------------------------------------------------
-// VS
-//-----------------------------------------------------------------------------
+ConstantBuffer<cb_push_tone_mapping_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
 ps_input_t vs_main(uint p_vertex_id : SV_VertexID)
 {
@@ -38,10 +23,6 @@ ps_input_t vs_main(uint p_vertex_id : SV_VertexID)
     return l_result;
 }
 
-//-----------------------------------------------------------------------------
-// PS
-//-----------------------------------------------------------------------------
-
 float4 ps_main(ps_input_t p_input) : SV_TARGET
 {
     float4 l_color = bindless_tex2d_sample_level(g_push_constants.m_hdr_texture_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], p_input.m_texcoord, 0);
@@ -51,13 +32,12 @@ float4 ps_main(ps_input_t p_input) : SV_TARGET
     // Get exposure from eye adaptation result
     float l_lum = bindless_tex2d_sample_level(g_push_constants.m_lum_texture_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], float2(g_push_constants.m_lum_uvx, 0.5f), 0).r;
     float l_exposure_scale = g_push_constants.m_key_value / l_lum;
-
-    // Apply exposure scale
-    l_color.rgb *= l_exposure_scale;
-#else // fixed exposure
+#else
+    // Fixed exposure
     float l_exposure_scale = ev100_to_exposure(g_push_constants.m_key_value);
-    l_color.rgb *= l_exposure_scale;
 #endif
+
+    l_color.rgb *= l_exposure_scale;
 
     // Tone mapping
     if (g_push_constants.m_tonemap_operator == TONEMAP_OP_EXP)
@@ -84,8 +64,9 @@ float4 ps_main(ps_input_t p_input) : SV_TARGET
     {
         l_color.rgb = tonemap_aces_fitted(l_color.rgb);
     }
-    
-	l_color.rgb = linear_to_gamma(l_color.rgb);
-	
+
+    l_color.rgb = linear_to_gamma(l_color.rgb);
+    l_color.rgb = apply_color_correction(l_color.rgb, g_push_constants.m_color_correction_lut_srv, g_push_constants.m_color_correction_lut_size);
+
     return l_color;
 }

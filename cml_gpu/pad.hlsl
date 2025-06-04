@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -56,7 +56,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
         {
             l_shape[l_i][l_j] = asuint(l_tensors.Load(l_byte_offset_tensor[l_i] + INT_SIZE * (1 + l_j)));
         }
-        for (l_j = l_rank[l_i]; l_j < MB_CML_GPU_MAX_TENSOR_RANK; l_j++)
+        for (uint l_j = l_rank[l_i]; l_j < MB_CML_GPU_MAX_TENSOR_RANK; l_j++)
         {
             l_shape[l_i][l_j] = 1;
         }
@@ -65,7 +65,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     }
 
     // number of outputs
-    for (l_i = 0; l_i < l_rank[ID_OUT_TENSOR]; l_i++)
+    for (uint l_i = 0; l_i < l_rank[ID_OUT_TENSOR]; l_i++)
     {
         l_n_outputs *= l_shape[ID_OUT_TENSOR][l_i];
     }
@@ -73,7 +73,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     // Retrieve padding
     uint l_padding[2 * MB_CML_GPU_MAX_TENSOR_RANK] = { 5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5 };
 
-    for (l_i = 0; l_i < l_meta_data.m_attrib_count - 1; l_i++)
+    for (uint l_i = 0; l_i < l_meta_data.m_attrib_count - 1; l_i++)
     {
         l_padding[l_i] = asuint(l_attributes.Load(l_meta_data.m_attrib_offset + INT_SIZE * (1 + l_i)));
     }
@@ -88,7 +88,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
         uint l_end_idx[MB_CML_GPU_MAX_TENSOR_RANK];
 
         // e
-        for (l_i = 0; l_i < l_rank[0]; l_i++)
+        for (uint l_i = 0; l_i < l_rank[0]; l_i++)
         {
             l_end_idx[l_i] = l_shape[0][l_i];
             if (0 > l_padding[2 * l_i + 1])
@@ -100,7 +100,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
 
         // s
         bool l_cond = true;
-        for (l_i = 0; l_i < l_rank[0]; l_i++)
+        for (uint l_i = 0; l_i < l_rank[0]; l_i++)
         {
             l_input_idx[l_i] = l_output_idx[l_i] - l_padding[2 * l_i];
             l_cond = l_cond && (0 <= l_input_idx[l_i]);

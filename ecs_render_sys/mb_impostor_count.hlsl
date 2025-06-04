@@ -1,16 +1,10 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "mb_impostor_common.hlsl"
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
 ConstantBuffer<cb_push_impostor_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
-// CS
-//-----------------------------------------------------------------------------
 [numthreads(IMPOSTOR_THREADGROUP_SIZE, 1, 1)]
 void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
 {
@@ -30,7 +24,7 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
     sb_impostor_item_t l_item = l_item_list[l_instance.m_item_idx];
 
     // Culling
-    if (!accept_impostor_instance(l_item, l_instance, l_camera, g_push_constants.m_start_distance, g_push_constants.m_hiz_map_srv))
+    if (!accept_impostor_instance(l_item, l_instance, l_camera, g_push_constants.m_hiz_map_srv, g_push_constants.m_lod_bias))
     {
         return;
     }

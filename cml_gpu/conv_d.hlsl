@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -62,9 +62,6 @@ uint get_attribs(in ByteAddressBuffer p_attrib_buffer, in uint p_byte_offset, ou
 groupshared float l_filter[2304];
 // 1x1 filter assumed
 
-//-----------------------------------------------------------------------------
-// Entry point
-//-----------------------------------------------------------------------------
 [numthreads(GROUP_SIZE_X, GROUP_SIZE, GROUP_SIZE)]
 void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     uint3 p_gtid : SV_GroupThreadID, uint p_gi : SV_GroupIndex)
@@ -79,7 +76,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     uint l_in_byte_offset_filter = l_meta_data.m_tensor_offset_1 + 20;
     uint l_in_byte_offset_bias = l_meta_data.m_tensor_offset_2 + 12;
     uint l_out_byte_offset = l_meta_data.m_tensor_offset_3 + 20;
-        
+
     uint l_x = p_gid.y * GROUP_SIZE + p_gtid.y;
     uint l_y = p_gid.z * GROUP_SIZE + p_gtid.z;
     uint l_k2 = p_gid.x * GROUP_SIZE_X + p_gtid.x;

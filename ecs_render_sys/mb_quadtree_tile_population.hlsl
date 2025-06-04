@@ -1,22 +1,15 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "../shared_shaders/mb_shared_common.hlsl"
 #include "../helper_shaders/mb_quadtree_common.hlsl"
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 // Root constants
 ConstantBuffer<cb_push_tile_population_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
-// Utility functions
-//-----------------------------------------------------------------------------
 void add_instance(RWStructuredBuffer<sb_render_instance_population_t> p_instance_buffer,
                   RWStructuredBuffer<uint> p_instance_count_buffer,
-                  sb_tile_instance_t p_tile_instance,
+                  sb_tile_instance_base p_tile_instance,
                   sb_population_item_t p_population_item,
                   uint p_id) // Temporary
 {
@@ -51,10 +44,6 @@ void add_instance(RWStructuredBuffer<sb_render_instance_population_t> p_instance
     p_instance_buffer[l_instance_index] = l_render_instance;
 }
 
-//-----------------------------------------------------------------------------
-// Compute shader
-//-----------------------------------------------------------------------------
-
 [numthreads(TILE_POPULATION_THREADGROUP_SIZE, 1, 1)]
 void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
 {
@@ -76,8 +65,8 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
         return;
     }
 
-    StructuredBuffer<sb_tile_instance_t> l_tile_instances = ResourceDescriptorHeap[g_push_constants.m_tile_buffer_srv];
-    sb_tile_instance_t l_tile_instance = l_tile_instances[l_population_tile_item.m_tile_index];
+    StructuredBuffer<sb_tile_instance_base> l_tile_instances = ResourceDescriptorHeap[g_push_constants.m_tile_buffer_srv];
+    sb_tile_instance_base l_tile_instance = l_tile_instances[l_population_tile_item.m_tile_index];
 
     // Skip tiles that are not available
     if (l_tile_instance.m_available == 0)

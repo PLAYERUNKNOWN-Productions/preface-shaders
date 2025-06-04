@@ -1,17 +1,9 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 // CBV
 ConstantBuffer<cb_push_lighting_combination_t>  g_push_constants    : register(REGISTER_PUSH_CONSTANTS);
-
-//-----------------------------------------------------------------------------
-// CS
-//-----------------------------------------------------------------------------
 
 [numthreads(LIGHTING_COMBINATION_THREAD_GROUP_SIZE, LIGHTING_COMBINATION_THREAD_GROUP_SIZE, 1)]
 void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
@@ -29,19 +21,16 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
     // Get uv
     float2 l_uv = (p_dispatch_thread_id.xy + 0.5f) / (float2)g_push_constants.m_dst_resolution;
 
-    // Get remapped uv
-    float2 l_remapped_uv = get_remapped_uv(l_uv, l_camera.m_render_scale);
-
     // Get direct lighting & opacity
-    float4 l_direct_lighting_data = bindless_tex2d_sample_level(g_push_constants.m_direct_lighting_rt_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], l_remapped_uv);
+    float4 l_direct_lighting_data = bindless_tex2d_sample_level(g_push_constants.m_direct_lighting_rt_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], l_uv);
     float3 l_direct_lighting = unpack_lighting(l_direct_lighting_data.rgb);
     float l_opacity = l_direct_lighting_data.a;
 
     // Get indirect lighting
-    float3 l_indirect_lighting = unpack_lighting(bindless_tex2d_sample_level(g_push_constants.m_indirect_lighting_rt_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], l_remapped_uv).rgb);
+    float3 l_indirect_lighting = unpack_lighting(bindless_tex2d_sample_level(g_push_constants.m_indirect_lighting_rt_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], l_uv).rgb);
 
 #if SSAO // Apply screen space ambient occlusion
-    const float l_ssao = bindless_tex2d_sample_level(g_push_constants.m_ssao_rt_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], l_remapped_uv).r;
+    const float l_ssao = bindless_tex2d_sample_level(g_push_constants.m_ssao_rt_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], l_uv).r;
     l_indirect_lighting *= l_ssao;
 #endif
 

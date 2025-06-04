@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -32,7 +32,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
 
     uint l_i1 = p_gid.y * GROUP_SIZE + p_gtid.y;
     uint l_i2 = p_gid.x * GROUP_SIZE + p_gtid.x;
-    
+
     uint l_idx_out = l_i1 * l_out_shape[3] + l_i2;
 
     float l_x = (float)l_i1 / 2;
@@ -65,7 +65,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
                 + l_f21 * (l_x - l_x1) * (l_y2 - l_y)
                 + l_f12 * (l_x2 - l_x) * (l_y - l_y1)
                 + l_f22 * (l_x - l_x1) * (l_y - l_y1);
-        
+
     int l_border = l_i1 <= 5 || l_i1 >= 57 || l_i2 <= 5 || l_i2 >= 57;
     l_out = l_border * l_out + (1 - l_border) * l_im64;
 

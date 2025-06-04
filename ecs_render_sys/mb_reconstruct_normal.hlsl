@@ -1,29 +1,16 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
-
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
 
 // Push constants
 ConstantBuffer<cb_push_reconstruct_normal_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
-// Helper function
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 float3 min_diff(float3 p_position, float3 p_position_right, float3 p_position_left)
 {
     float3 l_v1 = p_position_right - p_position;
     float3 l_v2 = p_position - p_position_left;
     return (dot(l_v1, l_v1) < dot(l_v2, l_v2)) ? l_v1 : l_v2;
 }
-
-//-----------------------------------------------------------------------------
-// CS
-//-----------------------------------------------------------------------------
 
 [numthreads(RECONSTRUCT_NORMAL_THREAD_GROUP_SIZE, RECONSTRUCT_NORMAL_THREAD_GROUP_SIZE, 1)]
 void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
@@ -42,14 +29,11 @@ void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)
     // Get uv
     float2 l_uv = (p_dispatch_thread_id.xy + 0.5f) / (float2) g_push_constants.m_dst_resolution;
 
-    // Get remapped uv
-    float2 l_remapped_uv = get_remapped_uv(l_uv, l_camera.m_render_scale);
-
-    float2 l_uv0 = l_remapped_uv;
-    float2 l_uv1 = l_remapped_uv + float2( g_push_constants.m_inv_dst_resolution.x, 0); // right
-    float2 l_uv2 = l_remapped_uv + float2(0,  g_push_constants.m_inv_dst_resolution.y); // top
-    float2 l_uv3 = l_remapped_uv + float2(-g_push_constants.m_inv_dst_resolution.x, 0); // left
-    float2 l_uv4 = l_remapped_uv + float2(0, -g_push_constants.m_inv_dst_resolution.y); // bottom
+    float2 l_uv0 = l_uv;
+    float2 l_uv1 = l_uv + float2( g_push_constants.m_inv_dst_resolution.x, 0); // right
+    float2 l_uv2 = l_uv + float2(0,  g_push_constants.m_inv_dst_resolution.y); // top
+    float2 l_uv3 = l_uv + float2(-g_push_constants.m_inv_dst_resolution.x, 0); // left
+    float2 l_uv4 = l_uv + float2(0, -g_push_constants.m_inv_dst_resolution.y); // bottom
 
     // Get depth
     float l_depth0 = bindless_tex2d_sample_level(g_push_constants.m_depth_texture_srv, (SamplerState)SamplerDescriptorHeap[SAMPLER_POINT_CLAMP], l_uv0).r;

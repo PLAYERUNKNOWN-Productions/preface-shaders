@@ -1,17 +1,9 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 // CBV
 ConstantBuffer<cb_push_vt_feedback_apply_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
-
-//-----------------------------------------------------------------------------
-// Utility functions
-//-----------------------------------------------------------------------------
 
 void write_sampler_feedback(sb_vt_feedback_t l_vt_feedback,
                             uint p_texture_srv,
@@ -31,10 +23,6 @@ void write_sampler_feedback(sb_vt_feedback_t l_vt_feedback,
     // Write feedback
     l_feedback_texture.WriteSamplerFeedbackLevel(l_texture, (SamplerState)SamplerDescriptorHeap[SAMPLER_LINEAR_WRAP], l_vt_feedback.m_uv, l_vt_feedback.m_min_mip_level);
 }
-
-//-----------------------------------------------------------------------------
-// CS
-//-----------------------------------------------------------------------------
 
 [numthreads(RAYTRACING_VT_FEEDBACK_THREADGROUP_SIZE, 1, 1)]
 void cs_main(uint3 p_dispatch_thread_id : SV_DispatchThreadID)

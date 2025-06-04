@@ -1,16 +1,10 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "../shared_shaders/mb_shared_common.hlsl"
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
 ConstantBuffer<cb_push_population_compact_append_t> g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
-// Compute shader
-//-----------------------------------------------------------------------------
 [numthreads(POPULATION_COMPACT_APPEND_THREADGROUP_SIZE, 1, 1)]
 void cs_main(uint3 dispatch_thread_id : SV_DispatchThreadID)
 {
@@ -36,7 +30,7 @@ void cs_main(uint3 dispatch_thread_id : SV_DispatchThreadID)
         InterlockedExchange(compact_population_count[0], g_push_constants.m_compact_population_capacity, l_original_value);
         return;
     }
-    
+
     RWStructuredBuffer<sb_population_tile_item_t> compact_population_buffer = ResourceDescriptorHeap[g_push_constants.m_compact_population_uav];
     compact_population_buffer[compacted_index].m_population_item = population_item;
     compact_population_buffer[compacted_index].m_tile_index = g_push_constants.m_tile_index;

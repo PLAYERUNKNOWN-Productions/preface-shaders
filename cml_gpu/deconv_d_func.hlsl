@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 // Attributes specifically for this operation
 struct deconv_d_attribs_s
@@ -225,7 +225,7 @@ void deconv_d_func(uint3 p_gid, uint3 p_dtid, uint3 p_gtid, uint p_gi)
         }
     }
     GroupMemoryBarrierWithGroupSync();
-    
+
     if (l_i2 < l_out_shape[3] && l_i1 < l_out_shape[2] && p_gtid.z == 0)
     {
         l_filter0 = float4(0, 0, 0, 0);

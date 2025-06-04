@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "mb_lighting_common.hlsl"
@@ -9,11 +9,7 @@
 #define RENDER_DEBUG_SHAPE_CUBE     2
 #define RENDER_DEBUG_SHAPE_PYRAMID  3
 
-//-----------------------------------------------------------------------------
-// Constants
-//-----------------------------------------------------------------------------
-
-static float2 m_quad_vertices[6] = 
+static float2 m_quad_vertices[6] =
 {
     float2(0.0, 0.0),
     float2(0.0, 1.0),
@@ -23,7 +19,7 @@ static float2 m_quad_vertices[6] =
     float2(1.0, 0.0)
 };
 
-static float2 m_quad_vertices_strip[4] = 
+static float2 m_quad_vertices_strip[4] =
 {
     float2(0.0, 0.0),
     float2(0.0, 1.0),
@@ -41,10 +37,6 @@ static float3 m_pyramid_vertices[18] =
     float3( 0.0, 0.0, 0.0), float3( 0.5, -0.5, 1.0), float3(-0.5, -0.5, 1.0),
 };
 
-//-----------------------------------------------------------------------------
-// Structures
-//-----------------------------------------------------------------------------
-
 struct ps_input_t
 {
     float4 m_position_cs      : SV_POSITION;
@@ -61,17 +53,8 @@ struct ps_output_t
 #endif
 };
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 ConstantBuffer<cb_push_gltf_t>  g_push_constants : register(REGISTER_PUSH_CONSTANTS);
 
-//-----------------------------------------------------------------------------
-// VS
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 ps_input_t vs_gpu_instancing(   uint p_vertex_id    : SV_VertexID,
                                 uint p_instance_id : SV_InstanceID)
 {
@@ -179,11 +162,6 @@ ps_input_t vs_gpu_instancing(   uint p_vertex_id    : SV_VertexID,
     return l_result;
 }
 
-//-----------------------------------------------------------------------------
-// PS
-//-----------------------------------------------------------------------------
-
-//-----------------------------------------------------------------------------
 void ps_shadow_pass(ps_input_t p_input)
 {
 }
@@ -196,10 +174,9 @@ void ps_impostor_data_pass()
 {
 }
 
-//-----------------------------------------------------------------------------
 ps_output_t ps_main(ps_input_t p_input)
 {
-    
+
     ps_output_t l_ps_output;
     l_ps_output.m_direct_lighting   = float4(p_input.m_color, 1.0);
     l_ps_output.m_indirect_lighting = 0;

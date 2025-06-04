@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -74,7 +74,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
 
     float l_mean = 0;
 
-    for (l_i = 0; l_i < l_n_elements; l_i++)
+    for (uint l_i = 0; l_i < l_n_elements; l_i++)
     {
         l_mean += asfloat(l_tensors.Load(l_in_byte_offset_input + 4 * (l_idx_in + l_i)));
     }
@@ -82,7 +82,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
 
     float l_var = 0;
 
-    for (l_i = 0; l_i < l_n_elements; l_i++)
+    for (uint l_i = 0; l_i < l_n_elements; l_i++)
     {
         float l_temp = asfloat(l_tensors.Load(l_in_byte_offset_input + 4 * (l_idx_in + l_i))) - l_mean;
 

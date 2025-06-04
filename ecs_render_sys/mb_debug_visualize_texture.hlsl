@@ -1,12 +1,8 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "../helper_shaders/mb_common.hlsl"
 #include "mb_lighting_common.hlsl"
 #include "mb_hdr_tone_mapping_common.hlsl"
-
-//-----------------------------------------------------------------------------
-// Structures
-//-----------------------------------------------------------------------------
 
 struct ps_input_t
 {
@@ -14,16 +10,8 @@ struct ps_input_t
     float2 m_texcoord   : TEXCOORD0;
 };
 
-//-----------------------------------------------------------------------------
-// Resources
-//-----------------------------------------------------------------------------
-
 // CBV
 ConstantBuffer<cb_push_debug_visualize_texture_t>   g_push_constants    : register(REGISTER_PUSH_CONSTANTS);
-
-//-----------------------------------------------------------------------------
-// VS
-//-----------------------------------------------------------------------------
 
 ps_input_t vs_main(uint p_vertex_id : SV_VertexID)
 {
@@ -34,10 +22,6 @@ ps_input_t vs_main(uint p_vertex_id : SV_VertexID)
 
     return l_result;
 }
-
-//-----------------------------------------------------------------------------
-// PS
-//-----------------------------------------------------------------------------
 
 #define COLOR_TABLE_SIZE 32
 
@@ -85,7 +69,7 @@ float4 ps_main(ps_input_t p_input) : SV_TARGET
         if (g_push_constants.m_format_num_channels == 1)
         {
             Texture2D<uint> l_texture = ResourceDescriptorHeap[g_push_constants.m_src_texture_srv];
-            uint l_classification = l_texture.Load(uint3(p_input.m_texcoord * g_push_constants.m_src_texture_size, 0)); 
+            uint l_classification = l_texture.Load(uint3(p_input.m_texcoord * g_push_constants.m_src_texture_size, 0));
             l_color.rgb = s_color_table[l_classification % COLOR_TABLE_SIZE];
         }
         else if (g_push_constants.m_format_num_channels == 2)
@@ -100,7 +84,7 @@ float4 ps_main(ps_input_t p_input) : SV_TARGET
             bool l_wind = false;
             bool l_wind_small = false;
             unpack_instance_id_pixel_options(l_instance_primitive_id.r, l_instance_id, l_front_face, l_wind, l_wind_small);
-            
+
             float3 l_wind_color = l_wind ? s_color_table[1] : (float3)0;
             float3 l_wind_small_color = l_wind_small ? s_color_table[2] : (float3)0;
 

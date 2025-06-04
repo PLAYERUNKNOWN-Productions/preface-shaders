@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 float elu(in float p_a)
 {
@@ -7,5 +7,5 @@ float elu(in float p_a)
 
 void elu_func(uint3 p_dispatch_thread_id)
 {
-    
+
 }

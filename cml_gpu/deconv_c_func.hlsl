@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 // Attributes specifically for this operation
 struct deconv_c_attribs_s
@@ -130,7 +130,7 @@ void deconv_c_func(uint3 p_gid, uint3 p_dtid, uint3 p_gtid, uint p_gi)
                     {
                         int l_a_ind3 = l_i2 + l_p2 - l_j2 * l_d2;
                         int l_ind3 = l_a_ind3 / l_s2;
-                        l_a_ind3 -= l_ind3 * l_s2;                       
+                        l_a_ind3 -= l_ind3 * l_s2;
 
                         if (l_a_ind3 == 0 && l_ind3 >= 0 && l_ind3 < l_d_i)
                         {
@@ -140,7 +140,7 @@ void deconv_c_func(uint3 p_gid, uint3 p_dtid, uint3 p_gtid, uint p_gi)
                             float l_t2 = l_filter[l_j2];
 
                             l_temp += l_t1 * l_t2;
-                        }  
+                        }
                     }
                 }
             }

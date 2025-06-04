@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #include "cml_bindings.hlsl"
 #include "cml_utils.hlsl"
@@ -14,9 +14,6 @@
 // uint m_tensor_offset_4; // Scale
 // uint m_tensor_offset_5; // Output
 
-//-----------------------------------------------------------------------------
-// Entry point
-//-----------------------------------------------------------------------------
 #define GROUP_SIZE 16
 #define N_TENSORS 6
 [numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
@@ -30,7 +27,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
 
     uint l_rank[N_TENSORS];
     uint4 l_shape[N_TENSORS];
-    uint l_byte_offset_tensor[N_TENSORS] = 
+    uint l_byte_offset_tensor[N_TENSORS] =
     {
             l_meta_data.m_tensor_offset_0,
             l_meta_data.m_tensor_offset_1,
@@ -45,7 +42,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     for (uint l_i = 0; l_i < N_TENSORS; l_i++)
     {
         l_rank[l_i] = asuint(l_tensors.Load(l_byte_offset_tensor[l_i]));
-        
+
         l_shape[l_i].x = asuint(l_tensors.Load(l_byte_offset_tensor[l_i] + 4 * (1 + 0)));
         l_shape[l_i].y = asuint(l_tensors.Load(l_byte_offset_tensor[l_i] + 4 * (1 + 1)));
 
@@ -68,7 +65,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
     if (l_k2 < l_shape[5].y && l_i1 < l_shape[5].z && l_i2 < l_shape[5].w)
     {
         uint l_idx_out = l_k2 * l_shape[5].z * l_shape[5].w + l_i1 * l_shape[5].w + l_i2;
-        
+
         float l_input = asfloat(l_tensors.Load(l_byte_offset_tensor[0] + 4 * l_idx_out));
         float l_mean = asfloat(l_tensors.Load(l_byte_offset_tensor[1] + 4 * l_k2));
         float l_variance = asfloat(l_tensors.Load(l_byte_offset_tensor[2] + 4 * l_k2));
@@ -76,7 +73,7 @@ void cs_main(uint3 p_gid : SV_GroupID, uint3 p_dtid : SV_DispatchThreadID,
         float l_scale = asfloat(l_tensors.Load(l_byte_offset_tensor[4] + 4 * l_k2));
 
         float l_output;
-        
+
         l_output = l_input - l_mean;
         l_output *= l_scale / sqrt(l_variance + l_epsilon);
         l_output += l_offset;

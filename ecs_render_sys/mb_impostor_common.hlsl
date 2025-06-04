@@ -1,4 +1,4 @@
-// Copyright (c) PLAYERUNKNOWN Productions. All Rights Reserved.
+// Copyright:   PlayerUnknown Productions BV
 
 #ifndef MB_SHADER_IMPOSTOR_COMMON_H
 #define MB_SHADER_IMPOSTOR_COMMON_H
@@ -6,7 +6,6 @@
 #include "../helper_shaders/mb_common.hlsl"
 #include "mb_hiz_culling.hlsl"
 
-//-----------------------------------------------------------------------------
 float4x3 get_impostor_instance_transform(sb_impostor_instance_t p_instance)
 {
     float l_sin = 0;
@@ -25,8 +24,11 @@ float4x3 get_impostor_instance_transform(sb_impostor_instance_t p_instance)
     return l_combined_transform;
 }
 
-//-----------------------------------------------------------------------------
-bool accept_impostor_instance(sb_impostor_item_t p_item, sb_impostor_instance_t p_instance, cb_camera_t p_camera, float p_impostor_distance, uint p_hiz_map_srv)
+bool accept_impostor_instance(sb_impostor_item_t p_item,
+                              sb_impostor_instance_t p_instance,
+                              cb_camera_t p_camera,
+                              uint p_hiz_map_srv,
+                              float p_lod_bias)
 {
     // Discard impostors with no data
     if (p_item.m_albedo_alpha_srv == RAL_NULL_BINDLESS_INDEX || p_item.m_normal_depth_srv == RAL_NULL_BINDLESS_INDEX)
@@ -34,14 +36,20 @@ bool accept_impostor_instance(sb_impostor_item_t p_item, sb_impostor_instance_t 
         return false;
     }
 
+    // Impostors are generated from population, which always has custom culling scale set to zero
+    float l_render_instance_culling_scale = 0;
+    float4x3 l_transform = get_impostor_instance_transform(p_instance);
+
     // Culling sphere vs frustum
-    float4 l_bounding_sphere = float4(p_instance.m_position, p_item.m_bounding_sphere.w);
+    float4 l_bounding_sphere = get_bounding_sphere_ws(p_item.m_bounding_sphere, l_transform, l_render_instance_culling_scale);
     if (!is_sphere_inside_camera_frustum(p_camera, l_bounding_sphere))
     {
         return false;
     }
 
-    if (length(p_instance.m_position) < p_impostor_distance)
+    // Screen coverage test
+    float l_distance_to_lod_camera = length(p_instance.m_position) * p_lod_bias;
+    if (!screen_coverage_test(p_camera.m_proj, p_camera.m_fov_vertical, l_bounding_sphere, l_distance_to_lod_camera, p_item.m_screen_coverage_range))
     {
         return false;
     }
@@ -49,15 +57,12 @@ bool accept_impostor_instance(sb_impostor_item_t p_item, sb_impostor_instance_t 
     // Occlusion culling
     if (p_hiz_map_srv != RAL_NULL_BINDLESS_INDEX)
     {
-        float3 l_aabb_min = p_item.m_bounding_sphere.xyz - p_item.m_bounding_sphere.www;
-        float3 l_aabb_max = p_item.m_bounding_sphere.xyz + p_item.m_bounding_sphere.www;
+        // Although impostors use a custom culling scale of 0, we cannot use 0 here as it would set the radius of our model space bounding sphere to 0
+        float4 l_bounding_sphere_ms = get_bounding_sphere_ms(p_item.m_bounding_sphere, 1);
+        float3 l_aabb_min = l_bounding_sphere_ms.xyz - l_bounding_sphere_ms.www;
+        float3 l_aabb_max = l_bounding_sphere_ms.xyz + l_bounding_sphere_ms.www;
 
-        if (!hiz_visibility_test(p_camera,
-                                 p_item.m_bounding_sphere,
-                                 l_aabb_min,
-                                 l_aabb_max,
-                                 get_impostor_instance_transform(p_instance),
-                                 p_hiz_map_srv))
+        if (!hiz_visibility_test(p_camera, l_aabb_min, l_aabb_max, l_transform, p_hiz_map_srv))
         {
             return false;
         }
